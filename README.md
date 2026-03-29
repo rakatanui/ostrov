@@ -53,11 +53,36 @@ Production-схема:
 - `config.settings.production`
 - `SECURE_PROXY_SSL_HEADER`
 - secure cookies
+- redirect exemption для `/health/` и `/ready/`
 - readiness endpoint `/ready/`
 - health endpoint `/health/`
 - Gunicorn startup через `0.0.0.0:$PORT`
 - GCS-backed storage для `static` и `media`
 - Cloud SQL-ready database configuration
+
+## Production Static And Media Strategy
+
+Для текущего сайта используется один простой production-вариант:
+
+- `static` хранятся в отдельном GCS bucket и публично читаются браузером
+- `media` хранятся в отдельном GCS bucket и тоже публично читаются браузером
+- приложение пишет в buckets через `django-storages`
+- браузер забирает файлы по публичным URL
+
+Это осознанный выбор для текущего проекта:
+
+- сайт публичный
+- `static` обязаны быть публично читаемыми, иначе сломается admin и публичные страницы
+- текущие `media` не являются приватными пользовательскими файлами; это контент сайта, который должен открываться в браузере без signed URL-логики
+
+Следствия этой стратегии:
+
+- buckets `static` и `media` должны быть публично читаемыми
+- используется Uniform Bucket-Level Access
+- доступ на чтение для браузера выдаётся через bucket IAM `allUsers -> roles/storage.objectViewer`
+- signed URL для baseline production-варианта не используются
+
+Если позже появятся приватные пользовательские файлы, для `media` потребуется отдельная стратегия доставки. Текущая production-подготовка этого не делает.
 
 ## Required Google Cloud Services
 
@@ -82,8 +107,8 @@ Service account Cloud Run должен иметь минимум:
 
 Шаблоны:
 
-- локальная разработка: [`.env.example`](/C:/Users/rakat/PyCharmMiscProject/.env.example)
-- production: [`.env.production.example`](/C:/Users/rakat/PyCharmMiscProject/.env.production.example)
+- локальная разработка: `.env.example`
+- production: `.env.production.example`
 
 Ключевые production env vars:
 
@@ -204,7 +229,7 @@ gcloud storage buckets create "gs://ostrov-quest-static" --project "$PROJECT_ID"
 gcloud storage buckets create "gs://ostrov-quest-media" --project "$PROJECT_ID" --location "$REGION" --uniform-bucket-level-access
 ```
 
-Выдай service account доступ:
+Выдай service account доступ на запись:
 
 ```bash
 gcloud storage buckets add-iam-policy-binding "gs://ostrov-quest-static" \
@@ -214,6 +239,18 @@ gcloud storage buckets add-iam-policy-binding "gs://ostrov-quest-static" \
 gcloud storage buckets add-iam-policy-binding "gs://ostrov-quest-media" \
   --member "serviceAccount:$SERVICE_ACCOUNT" \
   --role "roles/storage.objectAdmin"
+```
+
+Выдай публичный доступ на чтение для браузеров:
+
+```bash
+gcloud storage buckets add-iam-policy-binding "gs://ostrov-quest-static" \
+  --member "allUsers" \
+  --role "roles/storage.objectViewer"
+
+gcloud storage buckets add-iam-policy-binding "gs://ostrov-quest-media" \
+  --member "allUsers" \
+  --role "roles/storage.objectViewer"
 ```
 
 Non-secret значения для production env-файла:
@@ -226,9 +263,15 @@ GCS_STATIC_PREFIX=static
 GCS_MEDIA_PREFIX=media
 ```
 
+Важно:
+
+- текущая baseline-стратегия требует публичного чтения обоих buckets
+- если в организации принудительно включён Public Access Prevention, браузер не сможет читать `static`/`media` по прямым GCS URL
+- если позже захочется CDN или отдельный asset hostname, можно переопределить `DJANGO_STATIC_URL` и `DJANGO_MEDIA_URL`, не меняя storage backend
+
 ## Deploy To Cloud Run
 
-Подготовь production env-файл без секретов, например `.env.production`, на основе [`.env.production.example`](/C:/Users/rakat/PyCharmMiscProject/.env.production.example). Для `gcloud run deploy --env-vars-file` используй уже чистый файл без комментариев.
+Подготовь production env-файл без секретов, например `.env.production`, на основе `.env.production.example`.
 
 Минимальный набор экспортов:
 
@@ -241,6 +284,17 @@ export SERVICE_ACCOUNT="ostrov-quest-run@${PROJECT_ID}.iam.gserviceaccount.com"
 export ENV_VARS_FILE=".env.production"
 export SECRETS_SPEC="DJANGO_SECRET_KEY=django-secret-key:latest,POSTGRES_PASSWORD=postgres-password:latest,DJANGO_SUPERUSER_PASSWORD=django-superuser-password:latest"
 export CLOUD_SQL_CONNECTION_NAME="your-project-id:europe-west1:ostrov-quest-db"
+```
+
+По умолчанию deploy script использует:
+
+- `--allow-unauthenticated`, потому что сайт публичный
+- `--ingress internal-and-cloud-load-balancing`, потому что финальный production-вариант предполагает доступ через global external Application Load Balancer
+
+Если нужно временно проверить сервис напрямую через `run.app` до подключения load balancer, можно сделать разовый deploy с:
+
+```bash
+export INGRESS="all"
 ```
 
 Деплой сервиса:
@@ -327,11 +381,20 @@ make cloud-check
 
 ## Verify Deployment
 
-После деплоя проверь:
+Есть два рабочих сценария проверки.
+
+Если сервис ещё не стоит за load balancer и ты временно деплоил с `INGRESS=all`:
 
 ```bash
 curl -i "https://YOUR_RUN_APP_URL/health/"
 curl -i "https://YOUR_RUN_APP_URL/ready/"
+```
+
+Если финальная схема уже собрана через external Application Load Balancer:
+
+```bash
+curl -i "https://ostrov.quest/health/"
+curl -i "https://ostrov.quest/ready/"
 ```
 
 Ожидаемо:
@@ -343,20 +406,45 @@ curl -i "https://YOUR_RUN_APP_URL/ready/"
 
 - `/admin/` загружается со стилями
 - загрузка изображения в admin пишет файл в GCS media bucket
-- публичные страницы отдают ссылки на файлы из `storage.googleapis.com/...`
+- публичные страницы отдают ссылки на файлы из публичных `static`/`media` buckets
+- прямой запрос к одному из объектов `media` или `static` возвращает `200`, а не `403`
+
+## Public Cloud Run Service And Django Admin
+
+Сервис остаётся `allow-unauthenticated`, потому что это публичный сайт.
+
+Это означает:
+
+- публичные страницы сайта доступны без IAM-аутентификации
+- `/admin/` тоже доступен по сети
+- защита `/admin/` строится на обычной Django authentication, CSRF и secure session cookies
+
+Для текущего проекта это приемлемо, потому что:
+
+- admin не является анонимно доступным по содержимому, только по сетевому адресу
+- `DEBUG=False`
+- `SESSION_COOKIE_SECURE=True`
+- `CSRF_COOKIE_SECURE=True`
+- `SECURE_SSL_REDIRECT=True`
+- `X_FRAME_OPTIONS="DENY"`
+- стандартные password validators Django включены
+
+Дополнительное минимальное усиление на инфраструктурном уровне уже учтено в deploy script: финальный ingress по умолчанию ограничен режимом `internal-and-cloud-load-balancing`, чтобы production-трафик шёл через load balancer, а не напрямую в публичный `run.app` endpoint.
 
 ## Recommended Release Workflow
 
 Практический порядок:
 
 1. Собрать и запушить образ в Artifact Registry.
-2. Задеплоить Cloud Run service с env vars, secrets и Cloud SQL attachment.
-3. Прогнать `check --deploy`.
-4. Прогнать `migrate`.
-5. Прогнать `collectstatic`.
-6. При необходимости выполнить `ensure_superuser`.
-7. Проверить `/health/`, `/ready/`, `/admin/`.
-8. После этого подключить сервис к global external Application Load Balancer и домену `ostrov.quest`.
+2. Создать buckets, назначить service account доступ на запись и публичный доступ на чтение.
+3. Задеплоить Cloud Run service с env vars, secrets и Cloud SQL attachment.
+4. Прогнать `check --deploy`.
+5. Прогнать `migrate`.
+6. Прогнать `collectstatic`.
+7. При необходимости выполнить `ensure_superuser`.
+8. Проверить `/health/`, `/ready/`, `/admin/`, доступность `static` и `media`.
+9. Подключить сервис к global external Application Load Balancer и домену `ostrov.quest`.
+10. Для финального production оставить ingress `internal-and-cloud-load-balancing`.
 
 Миграции и `collectstatic` не запускаются автоматически на старте web-контейнера.
 
@@ -371,6 +459,7 @@ curl -i "https://YOUR_RUN_APP_URL/ready/"
 - `CSRF_COOKIE_SECURE = True`
 - `DEBUG = False` в production
 - `ALLOWED_HOSTS` и `CSRF_TRUSTED_ORIGINS` читаются из env
+- `/health/` и `/ready/` исключены из `SECURE_SSL_REDIRECT`, поэтому HTTP probes не ломают startup/readiness flow
 
 Рекомендуемый production-вариант:
 
@@ -378,7 +467,7 @@ curl -i "https://YOUR_RUN_APP_URL/ready/"
 - HTTPS frontend
 - managed certificate
 - serverless NEG на Cloud Run service
-- redirect `www -> apex` или `http -> https` на уровне load balancer, а не в Django-коде
+- redirect `www -> apex` и `http -> https` на уровне load balancer, а не в Django-коде
 
 Это проще и надёжнее, чем реализовывать canonical redirect внутри приложения.
 
@@ -396,12 +485,20 @@ Admin без CSS:
 - не выполнен `collectstatic`
 - неверно настроен `GCS_STATIC_BUCKET_NAME`
 - service account не имеет доступа к static bucket
+- static bucket не имеет публичного чтения для браузеров
 
 Загрузка media не работает:
 
-- отсутствует доступ к media bucket
+- отсутствует доступ service account к media bucket
+- media bucket не имеет публичного чтения для браузеров
 - не настроен `GCS_MEDIA_BUCKET_NAME`
 - bucket не существует
+
+`403` или `404` при открытии файлов из `storage.googleapis.com`:
+
+- bucket не получил `allUsers -> roles/storage.objectViewer`
+- включён Public Access Prevention и публичное чтение заблокировано организационной политикой
+- `DJANGO_STATIC_URL` или `DJANGO_MEDIA_URL` указывают не туда
 
 `403 CSRF verification failed`:
 
@@ -412,10 +509,11 @@ Admin без CSS:
 
 - проверь, что перед приложением используется HTTPS
 - проверь `X-Forwarded-Proto`
-- временно отключи `DJANGO_SECURE_SSL_REDIRECT`, если тестируешь нестандартный прокси
+- `/health/` и `/ready/` уже исключены из redirect logic; если редиректится остальной сайт, проблема обычно в proxy headers или неверной схеме на внешнем прокси
 
 Cloud Run стартует, но приложение недоступно:
 
 - контейнер должен слушать `0.0.0.0:$PORT`
 - production image использует Gunicorn и читает `PORT` из env
 - startup probe настроен на `/ready/`, поэтому приложение не должно принимать трафик до готовности БД
+- если deploy выполнен с `INGRESS=internal-and-cloud-load-balancing`, прямой доступ к `run.app` снаружи не является ожидаемым поведением

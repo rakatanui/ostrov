@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Легенды Острова" %}{% endblock %}
+
+{% block content %}
+    <section class="hero">
+        <p class="eyebrow">{% trans "Легенды, которые держат память острова." %}</p>
+        <h1>{% trans "Легенды Острова" %}</h1>
+        <p class="hero-copy">
+            {% trans "На этом этапе готов фундамент проекта: публичная главная страница, локализация, модели легенд и комментариев, а также встроенная админка для редакторов." %}
+        </p>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>{% trans "Опубликованные легенды" %}</h2>
+        </div>
+
+        {% if legends %}
+            <div class="legend-grid">
+                {% for translation in legends %}
+                    {% include "legends/_legend_card.html" with translation=translation %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty-state">
+                {% trans "Пока опубликованных легенд нет. Добавь записи через админку, и они появятся здесь автоматически." %}
+            </p>
+        {% endif %}
+    </section>
+{% endblock %}

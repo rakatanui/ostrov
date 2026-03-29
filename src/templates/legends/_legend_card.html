@@ -1,0 +1,76 @@
+{% load i18n %}
+<article class="legend-card">
+    <div class="legend-card__body">
+        {% if translation.legend.published_translations %}
+            <div class="legend-card__translations" aria-label="{% trans 'Опубликованные переводы' %}">
+                {% for published_translation in translation.legend.published_translations %}
+                    <a
+                        class="legend-card__translation-link{% if published_translation.pk == translation.pk %} is-active{% endif %}"
+                        href="{{ published_translation.get_absolute_url }}"
+                        lang="{{ published_translation.locale }}"
+                        hreflang="{{ published_translation.locale }}"
+                    >
+                        {{ published_translation.locale|upper }}
+                    </a>
+                {% endfor %}
+            </div>
+        {% endif %}
+        <h3>
+            <a class="legend-card__title-link" href="{{ translation.get_absolute_url }}">
+                {{ translation.title }}
+            </a>
+        </h3>
+        {% if translation.excerpt %}
+            <p>{{ translation.excerpt|linebreaksbr }}</p>
+        {% else %}
+            <p>{{ translation.body|truncatechars:260|linebreaksbr }}</p>
+        {% endif %}
+        <p class="legend-card__cta">
+            <a class="button-link" href="{{ translation.get_absolute_url }}">
+                {% trans "Читать полностью" %}
+            </a>
+        </p>
+    </div>
+    <dl class="legend-meta">
+        <div>
+            <dt>{% trans "Серия" %}</dt>
+            <dd>
+                {% if translation.legend.series %}
+                    <a href="{{ translation.legend.series.get_absolute_url }}">{{ translation.legend.series.display_name }}</a>
+                {% else %}
+                    {% trans "Нет" %}
+                {% endif %}
+            </dd>
+        </div>
+        <div>
+            <dt>{% trans "Провинция" %}</dt>
+            <dd>
+                {% if translation.legend.province %}
+                    <a href="{{ translation.legend.province.get_absolute_url }}">{{ translation.legend.province.display_name }}</a>
+                {% else %}
+                    {% trans "Нет" %}
+                {% endif %}
+            </dd>
+        </div>
+        <div>
+            <dt>{% trans "Покровитель" %}</dt>
+            <dd>
+                {% if translation.legend.patron %}
+                    <a href="{{ translation.legend.patron.get_absolute_url }}">{{ translation.legend.patron.display_name }}</a>
+                {% else %}
+                    {% trans "Нет" %}
+                {% endif %}
+            </dd>
+        </div>
+        <div>
+            <dt>{% trans "Теги" %}</dt>
+            <dd class="tag-list">
+                {% for tag in translation.legend.tags.all %}
+                    <a class="tag-link" href="{{ tag.get_absolute_url }}">{{ tag.display_name }}</a>
+                {% empty %}
+                    {% trans "Нет" %}
+                {% endfor %}
+            </dd>
+        </div>
+    </dl>
+</article>

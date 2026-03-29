@@ -1,0 +1,12 @@
+.git
+.venv
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.idea/
+.env
+media/
+staticfiles/
+src/locale/*/LC_MESSAGES/*.mo

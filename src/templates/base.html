@@ -1,0 +1,56 @@
+{% load i18n static navigation %}
+{% get_current_language as CURRENT_LANGUAGE %}
+<!DOCTYPE html>
+<html lang="{{ CURRENT_LANGUAGE }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{% trans "Легенды Острова" %}{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}{% trans "Черновой проект сайта для публикации литературных легенд с редакторской модерацией." %}{% endblock %}">
+    <link rel="stylesheet" href="{% static 'css/site.css' %}">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="site-header">
+            <div>
+                <a class="site-brand" href="{% url 'home' %}">{% trans "Легенды Острова" %}</a>
+                <p class="site-tagline">{% trans "Архив островных историй, мифов и преданий." %}</p>
+            </div>
+            <div class="header-tools">
+                <nav class="site-nav" aria-label="{% trans 'Основная навигация' %}">
+                    <a href="{% url 'home' %}">{% trans "Главная" %}</a>
+                    <a href="/admin/">{% trans "Админка" %}</a>
+                    <a href="/health/">{% trans "Проверить здоровье сервиса" %}</a>
+                </nav>
+                {% get_available_languages as AVAILABLE_LANGUAGES %}
+                {% get_language_info_list for AVAILABLE_LANGUAGES as language_info_list %}
+                <nav class="language-switcher" aria-label="{% trans 'Язык' %}">
+                    {% for language in language_info_list %}
+                        {% switch_language_url language.code as localized_url %}
+                        <a
+                            class="language-link{% if language.code == CURRENT_LANGUAGE %} is-active{% endif %}"
+                            href="{{ localized_url }}"
+                            lang="{{ language.code }}"
+                            hreflang="{{ language.code }}"
+                        >
+                            {{ language.code|upper }}
+                        </a>
+                    {% endfor %}
+                </nav>
+            </div>
+        </header>
+
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="message message-{{ message.tags|default:'info' }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <main class="site-main">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

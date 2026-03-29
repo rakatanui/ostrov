@@ -1,0 +1,133 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: legends-island\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-03-29 00:00+0000\n"
+"PO-Revision-Date: 2026-03-29 00:00+0000\n"
+"Last-Translator: Codex\n"
+"Language: en\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Легенды Острова"
+msgstr "Legends of the Island"
+
+msgid "Черновой проект сайта для публикации литературных легенд с редакторской модерацией."
+msgstr "An early-stage publishing site for literary legends with editorial moderation."
+
+msgid "Архив островных историй, мифов и преданий."
+msgstr "An archive of island stories, myths, and legends."
+
+msgid "Основная навигация"
+msgstr "Main navigation"
+
+msgid "Главная"
+msgstr "Home"
+
+msgid "Админка"
+msgstr "Admin"
+
+msgid "Проверить здоровье сервиса"
+msgstr "Health endpoint"
+
+msgid "Язык"
+msgstr "Language"
+
+msgid "Легенды, которые держат память острова."
+msgstr "Legends that carry the island's memory."
+
+msgid "На этом этапе готов фундамент проекта: публичная главная страница, локализация, модели легенд и комментариев, а также встроенная админка для редакторов."
+msgstr "At this stage the project foundation is ready: a public homepage, localization, legend and comment models, and a built-in admin for editors."
+
+msgid "Опубликованные легенды"
+msgstr "Published legends"
+
+msgid "Серия"
+msgstr "Series"
+
+msgid "Провинция"
+msgstr "Province"
+
+msgid "Покровитель"
+msgstr "Patron"
+
+msgid "Теги"
+msgstr "Tags"
+
+msgid "Нет"
+msgstr "None"
+
+msgid "Пока опубликованных легенд нет. Добавь записи через админку, и они появятся здесь автоматически."
+msgstr "There are no published legends yet. Add records through the admin and they will appear here automatically."
+
+msgid "Читать полностью"
+msgstr "Read the full legend"
+
+msgid "Другие языки этой легенды"
+msgstr "Other languages of this legend"
+
+msgid "Навигация по легенде"
+msgstr "Legend navigation"
+
+msgid "Полный текст"
+msgstr "Full text"
+
+msgid "Вернуться на главную"
+msgstr "Back to the homepage"
+
+msgid "Подборка опубликованных легенд по выбранному разделу."
+msgstr "A selection of published legends in the chosen section."
+
+msgid "Легенды в этом разделе"
+msgstr "Legends in this section"
+
+msgid "В этом разделе пока нет опубликованных легенд."
+msgstr "There are no published legends in this section yet."
+
+msgid "Тег"
+msgstr "Tag"
+
+msgid "Раздел"
+msgstr "Section"
+
+msgid "Комментарии"
+msgstr "Comments"
+
+msgid "Пока нет одобренных комментариев."
+msgstr "There are no approved comments yet."
+
+msgid "Оставить комментарий"
+msgstr "Leave a comment"
+
+msgid "Ваш комментарий будет опубликован только после проверки редактором."
+msgstr "Your comment will be published only after editorial review."
+
+msgid "Имя"
+msgstr "Name"
+
+msgid "Текст комментария"
+msgstr "Comment text"
+
+msgid "Отправить на модерацию"
+msgstr "Submit for moderation"
+
+msgid "Введите имя."
+msgstr "Enter your name."
+
+msgid "Введите текст комментария."
+msgstr "Enter your comment."
+
+msgid "Комментарий отправлен на модерацию. Он появится после проверки редактором."
+msgstr "Your comment has been submitted for moderation. It will appear after editorial review."
+
+msgid "Опубликованные переводы"
+msgstr "Published translations"
+
+msgid "Показывать комментарии со всех языков этой легенды"
+msgstr "Show comments from all languages of this legend"
+
+msgid "Применить"
+msgstr "Apply"

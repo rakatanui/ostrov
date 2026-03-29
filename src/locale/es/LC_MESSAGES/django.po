@@ -1,0 +1,133 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: legends-island\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-03-29 00:00+0000\n"
+"PO-Revision-Date: 2026-03-29 00:00+0000\n"
+"Last-Translator: Codex\n"
+"Language: es\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Легенды Острова"
+msgstr "Leyendas de la Isla"
+
+msgid "Черновой проект сайта для публикации литературных легенд с редакторской модерацией."
+msgstr "Una primera versión del sitio para publicar leyendas literarias con moderación editorial."
+
+msgid "Архив островных историй, мифов и преданий."
+msgstr "Un archivo de historias, mitos y leyendas de la isla."
+
+msgid "Основная навигация"
+msgstr "Navegación principal"
+
+msgid "Главная"
+msgstr "Inicio"
+
+msgid "Админка"
+msgstr "Administración"
+
+msgid "Проверить здоровье сервиса"
+msgstr "Health endpoint"
+
+msgid "Язык"
+msgstr "Idioma"
+
+msgid "Легенды, которые держат память острова."
+msgstr "Leyendas que sostienen la memoria de la isla."
+
+msgid "На этом этапе готов фундамент проекта: публичная главная страница, локализация, модели легенд и комментариев, а также встроенная админка для редакторов."
+msgstr "En esta etapa ya está listo el fundamento del proyecto: una página principal pública, localización, modelos de leyendas y comentarios, y un panel de administración integrado para editores."
+
+msgid "Опубликованные легенды"
+msgstr "Leyendas publicadas"
+
+msgid "Серия"
+msgstr "Serie"
+
+msgid "Провинция"
+msgstr "Provincia"
+
+msgid "Покровитель"
+msgstr "Patrón"
+
+msgid "Теги"
+msgstr "Etiquetas"
+
+msgid "Нет"
+msgstr "Ninguno"
+
+msgid "Пока опубликованных легенд нет. Добавь записи через админку, и они появятся здесь автоматически."
+msgstr "Todavía no hay leyendas publicadas. Añade entradas desde el panel de administración y aparecerán aquí automáticamente."
+
+msgid "Читать полностью"
+msgstr "Leer completa"
+
+msgid "Другие языки этой легенды"
+msgstr "Otros idiomas de esta leyenda"
+
+msgid "Навигация по легенде"
+msgstr "Navegación por la leyenda"
+
+msgid "Полный текст"
+msgstr "Texto completo"
+
+msgid "Вернуться на главную"
+msgstr "Volver al inicio"
+
+msgid "Подборка опубликованных легенд по выбранному разделу."
+msgstr "Una selección de leyendas publicadas para la sección elegida."
+
+msgid "Легенды в этом разделе"
+msgstr "Leyendas en esta sección"
+
+msgid "В этом разделе пока нет опубликованных легенд."
+msgstr "Todavía no hay leyendas publicadas en esta sección."
+
+msgid "Тег"
+msgstr "Etiqueta"
+
+msgid "Раздел"
+msgstr "Sección"
+
+msgid "Комментарии"
+msgstr "Comentarios"
+
+msgid "Пока нет одобренных комментариев."
+msgstr "Todavía no hay comentarios aprobados."
+
+msgid "Оставить комментарий"
+msgstr "Dejar un comentario"
+
+msgid "Ваш комментарий будет опубликован только после проверки редактором."
+msgstr "Tu comentario se publicará solo después de la revisión editorial."
+
+msgid "Имя"
+msgstr "Nombre"
+
+msgid "Текст комментария"
+msgstr "Texto del comentario"
+
+msgid "Отправить на модерацию"
+msgstr "Enviar a moderación"
+
+msgid "Введите имя."
+msgstr "Introduce tu nombre."
+
+msgid "Введите текст комментария."
+msgstr "Introduce tu comentario."
+
+msgid "Комментарий отправлен на модерацию. Он появится после проверки редактором."
+msgstr "Tu comentario fue enviado a moderación. Aparecerá después de la revisión editorial."
+
+msgid "Опубликованные переводы"
+msgstr "Traducciones publicadas"
+
+msgid "Показывать комментарии со всех языков этой легенды"
+msgstr "Mostrar comentarios de todos los idiomas de esta leyenda"
+
+msgid "Применить"
+msgstr "Aplicar"

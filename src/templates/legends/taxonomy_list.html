@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ taxonomy_label }}: {{ taxonomy_object.name }}{% endblock %}
+{% block meta_description %}
+    {% if taxonomy_object.description %}
+        {{ taxonomy_object.description }}
+    {% else %}
+        {% trans "Подборка опубликованных легенд по выбранному разделу." %}
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    <section class="hero hero--compact">
+        <p class="eyebrow">{{ taxonomy_label }}</p>
+        <h1>{{ taxonomy_object.name }}</h1>
+        {% if taxonomy_object.description %}
+            <p class="hero-copy">{{ taxonomy_object.description }}</p>
+        {% else %}
+            <p class="hero-copy">{% trans "Подборка опубликованных легенд по выбранному разделу." %}</p>
+        {% endif %}
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>{% trans "Легенды в этом разделе" %}</h2>
+        </div>
+
+        {% if legends %}
+            <div class="legend-grid">
+                {% for translation in legends %}
+                    {% include "legends/_legend_card.html" with translation=translation %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty-state">{% trans "В этом разделе пока нет опубликованных легенд." %}</p>
+        {% endif %}
+    </section>
+{% endblock %}

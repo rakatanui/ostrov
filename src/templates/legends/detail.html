@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ translation.seo_title|default:translation.title }}{% endblock %}
+{% block meta_description %}{{ translation.seo_description|default:translation.excerpt|default:translation.body|truncatechars:160 }}{% endblock %}
+
+{% block content %}
+    <article class="legend-detail">
+        <p class="eyebrow">{{ translation.get_locale_display }}</p>
+        <h1 class="legend-detail__title">{{ translation.title }}</h1>
+
+        {% if translation.excerpt %}
+            <div class="legend-detail__excerpt">
+                {{ translation.excerpt|linebreaks }}
+            </div>
+        {% endif %}
+
+        {% if alternate_translations|length > 1 %}
+            <section class="panel legend-detail__translations">
+                <div class="panel-header">
+                    <h2>{% trans "Другие языки этой легенды" %}</h2>
+                </div>
+                <nav class="language-switcher" aria-label="{% trans 'Другие языки этой легенды' %}">
+                    {% for item in alternate_translations %}
+                        <a
+                            class="language-link{% if item.pk == translation.pk %} is-active{% endif %}"
+                            href="{{ item.get_absolute_url }}{% if show_all_comments %}?show_all_comments=1{% endif %}"
+                            lang="{{ item.locale }}"
+                            hreflang="{{ item.locale }}"
+                        >
+                            {{ item.locale|upper }}
+                        </a>
+                    {% endfor %}
+                </nav>
+            </section>
+        {% endif %}
+
+        <section class="panel legend-detail__meta-panel">
+            <div class="panel-header">
+                <h2>{% trans "Навигация по легенде" %}</h2>
+            </div>
+            <dl class="legend-meta legend-meta--detail">
+                <div>
+                    <dt>{% trans "Серия" %}</dt>
+                    <dd>
+                        {% if translation.legend.series %}
+                            <a href="{{ translation.legend.series.get_absolute_url }}">{{ translation.legend.series.display_name }}</a>
+                        {% else %}
+                            {% trans "Нет" %}
+                        {% endif %}
+                    </dd>
+                </div>
+                <div>
+                    <dt>{% trans "Провинция" %}</dt>
+                    <dd>
+                        {% if translation.legend.province %}
+                            <a href="{{ translation.legend.province.get_absolute_url }}">{{ translation.legend.province.display_name }}</a>
+                        {% else %}
+                            {% trans "Нет" %}
+                        {% endif %}
+                    </dd>
+                </div>
+                <div>
+                    <dt>{% trans "Покровитель" %}</dt>
+                    <dd>
+                        {% if translation.legend.patron %}
+                            <a href="{{ translation.legend.patron.get_absolute_url }}">{{ translation.legend.patron.display_name }}</a>
+                        {% else %}
+                            {% trans "Нет" %}
+                        {% endif %}
+                    </dd>
+                </div>
+                <div>
+                    <dt>{% trans "Теги" %}</dt>
+                    <dd class="tag-list">
+                        {% for tag in translation.legend.tags.all %}
+                            <a class="tag-link" href="{{ tag.get_absolute_url }}">{{ tag.display_name }}</a>
+                        {% empty %}
+                            {% trans "Нет" %}
+                        {% endfor %}
+                    </dd>
+                </div>
+            </dl>
+        </section>
+
+        <section class="panel legend-detail__body">
+            <div class="panel-header">
+                <h2>{% trans "Полный текст" %}</h2>
+            </div>
+            <div class="rich-text">
+                {{ translation.body|linebreaks }}
+            </div>
+        </section>
+
+        <section class="panel legend-comments" id="comments">
+            <div class="panel-header">
+                <h2>{% trans "Комментарии" %}</h2>
+            </div>
+
+            {% if alternate_translations|length > 1 %}
+                <form method="get" action="{{ translation.get_absolute_url }}" class="comment-filter-form">
+                    <label class="checkbox-field" for="show-all-comments">
+                        <input
+                            id="show-all-comments"
+                            type="checkbox"
+                            name="show_all_comments"
+                            value="1"
+                            {% if show_all_comments %}checked{% endif %}
+                        >
+                        <span>{% trans "Показывать комментарии со всех языков этой легенды" %}</span>
+                    </label>
+                    <button type="submit" class="button-link button-link--subtle">{% trans "Применить" %}</button>
+                </form>
+            {% endif %}
+
+            {% if approved_comments %}
+                <div class="comment-list">
+                    {% for comment in approved_comments %}
+                        <article class="comment-card">
+                            <header class="comment-card__header">
+                                <div class="comment-card__author-block">
+                                    <strong>{{ comment.author_name }}</strong>
+                                    {% if show_all_comments %}
+                                        <a class="comment-card__translation-link" href="{{ comment.legend_translation.get_absolute_url }}">
+                                            {{ comment.legend_translation.locale|upper }}: {{ comment.legend_translation.title }}
+                                        </a>
+                                    {% endif %}
+                                </div>
+                                <time datetime="{{ comment.created_at|date:'c' }}">{{ comment.created_at|date:"d.m.Y H:i" }}</time>
+                            </header>
+                            <div class="comment-card__body">
+                                {{ comment.body|linebreaks }}
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="empty-state">{% trans "Пока нет одобренных комментариев." %}</p>
+            {% endif %}
+        </section>
+
+        <section class="panel legend-comments__form-panel">
+            <div class="panel-header">
+                <h2>{% trans "Оставить комментарий" %}</h2>
+            </div>
+            <p class="legend-comments__note">
+                {% trans "Ваш комментарий будет опубликован только после проверки редактором." %}
+            </p>
+
+            <form method="post" class="comment-form" novalidate>
+                {% csrf_token %}
+                {% if show_all_comments %}
+                    <input type="hidden" name="show_all_comments" value="1">
+                {% endif %}
+
+                {% if comment_form.non_field_errors %}
+                    <div class="form-errors">
+                        {{ comment_form.non_field_errors }}
+                    </div>
+                {% endif %}
+
+                <div class="form-grid">
+                    <div class="form-field">
+                        <label for="{{ comment_form.author_name.id_for_label }}">{{ comment_form.author_name.label }}</label>
+                        {{ comment_form.author_name }}
+                        {% if comment_form.author_name.errors %}
+                            <div class="field-error">{{ comment_form.author_name.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-field">
+                        <label for="{{ comment_form.author_email.id_for_label }}">{{ comment_form.author_email.label }}</label>
+                        {{ comment_form.author_email }}
+                        {% if comment_form.author_email.errors %}
+                            <div class="field-error">{{ comment_form.author_email.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    <label for="{{ comment_form.body.id_for_label }}">{{ comment_form.body.label }}</label>
+                    {{ comment_form.body }}
+                    {% if comment_form.body.errors %}
+                        <div class="field-error">{{ comment_form.body.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="button-link">{% trans "Отправить на модерацию" %}</button>
+            </form>
+        </section>
+
+        <p class="legend-detail__back">
+            <a class="button-link" href="{% url 'home' %}">{% trans "Вернуться на главную" %}</a>
+        </p>
+    </article>
+{% endblock %}

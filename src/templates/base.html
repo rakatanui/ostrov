@@ -5,9 +5,44 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5efe2">
+    <script>
+        (function () {
+            var storageKey = "ostrov-theme";
+            var root = document.documentElement;
+            var preference = "system";
+            var resolved = "light";
+
+            root.classList.add("js");
+
+            try {
+                var stored = window.localStorage.getItem(storageKey);
+                if (stored === "light" || stored === "dark" || stored === "system") {
+                    preference = stored;
+                }
+            } catch (error) {
+            }
+
+            if (preference === "light" || preference === "dark") {
+                root.dataset.theme = preference;
+                resolved = preference;
+            } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+                resolved = "dark";
+            }
+
+            root.dataset.themePreference = preference;
+            root.dataset.resolvedTheme = resolved;
+
+            var themeColor = document.querySelector('meta[name="theme-color"]');
+            if (themeColor) {
+                themeColor.setAttribute("content", resolved === "dark" ? "#0b1016" : "#f5efe2");
+            }
+        }());
+    </script>
     <title>{% block title %}{% trans "Легенды Острова" %}{% endblock %}</title>
     <meta name="description" content="{% block meta_description %}{% trans "Черновой проект сайта для публикации литературных легенд с редакторской модерацией." %}{% endblock %}">
     <link rel="stylesheet" href="{% static 'css/site.css' %}">
+    <script src="{% static 'js/theme-switcher.js' %}" defer></script>
 </head>
 <body>
     <div class="page-shell">
@@ -24,19 +59,64 @@
                 </nav>
                 {% get_available_languages as AVAILABLE_LANGUAGES %}
                 {% get_language_info_list for AVAILABLE_LANGUAGES as language_info_list %}
-                <nav class="language-switcher" aria-label="{% trans 'Язык' %}">
-                    {% for language in language_info_list %}
-                        {% switch_language_url language.code as localized_url %}
-                        <a
-                            class="language-link{% if language.code == CURRENT_LANGUAGE %} is-active{% endif %}"
-                            href="{{ localized_url }}"
-                            lang="{{ language.code }}"
-                            hreflang="{{ language.code }}"
+                <div class="header-meta">
+                    <div class="theme-switcher" role="group" aria-label="{% trans 'Тема' %}">
+                        <button
+                            type="button"
+                            class="theme-switcher__option"
+                            data-theme-choice="light"
+                            aria-pressed="false"
+                            aria-label="{% trans 'Светлая тема' %}"
+                            title="{% trans 'Светлая тема' %}"
                         >
-                            {{ language.code|upper }}
-                        </a>
-                    {% endfor %}
-                </nav>
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <circle cx="12" cy="12" r="4"></circle>
+                                <path d="M12 2v2.5M12 19.5V22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M2 12h2.5M19.5 12H22M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"></path>
+                            </svg>
+                            <span class="sr-only">{% trans "Светлая тема" %}</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="theme-switcher__option"
+                            data-theme-choice="dark"
+                            aria-pressed="false"
+                            aria-label="{% trans 'Темная тема' %}"
+                            title="{% trans 'Темная тема' %}"
+                        >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"></path>
+                            </svg>
+                            <span class="sr-only">{% trans "Темная тема" %}</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="theme-switcher__option is-active"
+                            data-theme-choice="system"
+                            aria-pressed="true"
+                            aria-label="{% trans 'Системная тема' %}"
+                            title="{% trans 'Системная тема' %}"
+                        >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <rect x="3" y="4" width="18" height="12" rx="2"></rect>
+                                <path d="M8 20h8M12 16v4"></path>
+                            </svg>
+                            <span class="sr-only">{% trans "Системная тема" %}</span>
+                        </button>
+                    </div>
+                    <nav class="language-switcher" aria-label="{% trans 'Язык' %}">
+                        {% for language in language_info_list %}
+                            {% switch_language_url language.code as localized_url %}
+                            <a
+                                class="language-link{% if language.code == CURRENT_LANGUAGE %} is-active{% endif %}"
+                                href="{{ localized_url }}"
+                                lang="{{ language.code }}"
+                                hreflang="{{ language.code }}"
+                            >
+                                {{ language.code|upper }}
+                            </a>
+                        {% endfor %}
+                    </nav>
+                </div>
             </div>
         </header>
 

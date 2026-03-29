@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-echo "Waiting for PostgreSQL at ${POSTGRES_HOST}:${POSTGRES_PORT}..."
+echo "Waiting for PostgreSQL at ${POSTGRES_HOST:-db}:${POSTGRES_PORT:-5432}..."
 
 python - <<'PY'
 import os
@@ -14,8 +14,8 @@ settings = {
     "dbname": os.environ["POSTGRES_DB"],
     "user": os.environ["POSTGRES_USER"],
     "password": os.environ["POSTGRES_PASSWORD"],
-    "host": os.environ["POSTGRES_HOST"],
-    "port": os.environ["POSTGRES_PORT"],
+    "host": os.environ.get("POSTGRES_HOST", "db"),
+    "port": os.environ.get("POSTGRES_PORT", "5432"),
     "connect_timeout": 3,
 }
 
@@ -34,7 +34,6 @@ else:
     sys.exit(1)
 PY
 
-python manage.py compilemessages
 python manage.py migrate --noinput
 
 exec "$@"

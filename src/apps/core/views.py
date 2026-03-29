@@ -15,6 +15,10 @@ class HomeView(TemplateView):
 
 
 def health_view(request):
+    return JsonResponse({"status": "ok"}, status=200)
+
+
+def ready_view(request):
     try:
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")

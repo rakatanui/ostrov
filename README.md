@@ -1,167 +1,421 @@
 # Легенды Острова
 
-Базовый монолитный Django-проект для публикации художественных текстов с локализацией, премодерацией комментариев и встроенной админкой.
+Существующий Django-монолит для сайта `ostrov.quest`, подготовленный к локальной разработке и production deployment в Google Cloud по схеме:
 
-## Что есть на первом этапе
+- Cloud Run для веб-приложения
+- Cloud SQL for PostgreSQL для базы данных
+- Secret Manager для секретов
+- Cloud Storage для `static` и `media`
+- Artifact Registry для контейнерного образа
+- `gcloud builds submit` / Cloud Build для сборки образа
+- Cloud Run Jobs для release-задач
+- custom domain `ostrov.quest` через global external Application Load Balancer
 
-- Django-проект c `src/`-layout
-- PostgreSQL в Docker Compose
-- Разделённые настройки `base / local / production`
-- Приложения `core`, `legends`, `comments`
-- Модели легенд, переводов и комментариев
-- Премодерация комментариев и журнал событий модерации
-- Базовая главная страница и `/health/`
-- Подготовка статики, медиа и i18n
-- Django admin для публикации и модерации
+## Local Development
 
-## Требования
+Локальная разработка остаётся через Docker Compose.
 
-- Docker
-- Docker Compose
-
-Локальный Python не нужен: весь запуск и служебные команды выполняются внутри контейнера.
-
-## Быстрый старт
-
-1. Скопируй пример переменных окружения:
+1. Создай локальный env-файл:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-2. Собери и запусти проект:
+2. Подними проект:
 
 ```powershell
 docker compose up --build
 ```
 
-3. Открой в браузере:
+3. Открой:
 
 - сайт: `http://localhost:8000/`
-- английская версия: `http://localhost:8000/en/`
 - healthcheck: `http://localhost:8000/health/`
-- админка: `http://localhost:8000/admin/`
+- readiness: `http://localhost:8000/ready/`
+- admin: `http://localhost:8000/admin/`
 
-Контейнер `web` при старте ждёт готовности PostgreSQL и автоматически применяет миграции.
+Контейнер `web` в локальном режиме ждёт PostgreSQL и применяет миграции автоматически. Это локальная-only логика, в production она не используется.
 
-## Основные команды
+## Production Architecture On Google Cloud
 
-### Запуск
+Production-схема:
 
-```powershell
-docker compose up --build
-```
+- Cloud Run service `ostrov-quest-web` с Gunicorn
+- Cloud SQL PostgreSQL, подключённый через Unix socket `/cloudsql/INSTANCE_CONNECTION_NAME`
+- отдельные buckets для `static` и `media`
+- Secret Manager для `DJANGO_SECRET_KEY`, `POSTGRES_PASSWORD`, `DJANGO_SUPERUSER_PASSWORD` и других чувствительных значений
+- Artifact Registry для контейнерного образа
+- Cloud Run Jobs для `check --deploy`, `migrate`, `collectstatic`, `ensure_superuser`
+- global external Application Load Balancer + serverless NEG перед Cloud Run для production custom domain
 
-### Остановить окружение
+В приложении уже настроены:
 
-```powershell
-docker compose down
-```
+- `config.settings.production`
+- `SECURE_PROXY_SSL_HEADER`
+- secure cookies
+- readiness endpoint `/ready/`
+- health endpoint `/health/`
+- Gunicorn startup через `0.0.0.0:$PORT`
+- GCS-backed storage для `static` и `media`
+- Cloud SQL-ready database configuration
 
-### Применить миграции вручную
+## Required Google Cloud Services
 
-```powershell
-docker compose exec web python manage.py migrate
-```
+Нужно включить и подготовить:
 
-### Создать новые миграции
+- Cloud Run
+- Cloud Build
+- Artifact Registry
+- Cloud SQL Admin API
+- Secret Manager API
+- Cloud Storage
+- Certificate Manager / Managed SSL certificate для load balancer
+- External Application Load Balancer с serverless NEG
 
-```powershell
-docker compose exec web python manage.py makemigrations
-```
+Service account Cloud Run должен иметь минимум:
 
-### Создать суперпользователя
+- `roles/cloudsql.client`
+- `roles/secretmanager.secretAccessor`
+- `roles/storage.objectAdmin` на buckets для `static` и `media`
 
-```powershell
-docker compose exec web python manage.py createsuperuser
-```
+## Required Environment Variables
 
-### Проверить конфигурацию Django
+Шаблоны:
 
-```powershell
-docker compose exec web python manage.py check
-```
+- локальная разработка: [`.env.example`](/C:/Users/rakat/PyCharmMiscProject/.env.example)
+- production: [`.env.production.example`](/C:/Users/rakat/PyCharmMiscProject/.env.production.example)
 
-### Скомпилировать переводы после изменения `*.po`
+Ключевые production env vars:
 
-```powershell
-docker compose exec web python manage.py compilemessages
-```
-
-## Переменные окружения
-
-Смотри файл [`.env.example`](.env.example). Ключевые параметры:
-
-- `DJANGO_SETTINGS_MODULE`
-- `DJANGO_SECRET_KEY`
-- `DJANGO_DEBUG`
-- `DJANGO_ALLOWED_HOSTS`
-- `DJANGO_CSRF_TRUSTED_ORIGINS`
-- `DJANGO_TIME_ZONE`
+- `DJANGO_SETTINGS_MODULE=config.settings.production`
+- `DJANGO_ALLOWED_HOSTS=ostrov.quest,www.ostrov.quest`
+- `DJANGO_CSRF_TRUSTED_ORIGINS=https://ostrov.quest,https://www.ostrov.quest`
+- `DJANGO_TIME_ZONE=UTC`
+- `DJANGO_LOG_LEVEL=INFO`
+- `CLOUD_SQL_CONNECTION_NAME=project:region:instance`
 - `POSTGRES_DB`
 - `POSTGRES_USER`
-- `POSTGRES_PASSWORD`
-- `POSTGRES_HOST`
-- `POSTGRES_PORT`
+- `POSTGRES_PASSWORD` через Secret Manager
+- `GCS_STATIC_BUCKET_NAME`
+- `GCS_MEDIA_BUCKET_NAME`
+- `GCS_STATIC_PREFIX=static`
+- `GCS_MEDIA_PREFIX=media`
+- `GUNICORN_WORKERS`
+- `GUNICORN_THREADS`
+- `GUNICORN_TIMEOUT`
 
-## Структура проекта
+Поддерживаются два способа конфигурации БД:
 
-```text
-.
-├── compose.yaml
-├── docker/
-│   └── web/
-├── requirements/
-├── src/
-│   ├── apps/
-│   │   ├── comments/
-│   │   ├── core/
-│   │   └── legends/
-│   ├── config/
-│   │   └── settings/
-│   ├── locale/
-│   ├── static/
-│   └── templates/
-├── .env.example
-├── Makefile
-└── README.md
+1. `DATABASE_URL`
+2. явные `POSTGRES_*` + `CLOUD_SQL_CONNECTION_NAME`
+
+Для Cloud SQL в Cloud Run рекомендуется второй вариант: он проще и не требует URL-encoding Unix socket path.
+
+## Build Image
+
+Сначала создай Artifact Registry repository, например `ostrov-quest`.
+
+Подготовь переменные:
+
+```bash
+export PROJECT_ID="your-project-id"
+export REGION="europe-west1"
+export REPOSITORY="ostrov-quest"
+export IMAGE_NAME="ostrov-quest-web"
+export IMAGE_TAG="$(date +%Y%m%d-%H%M%S)"
 ```
 
-## Как устроена модель данных
+Сборка и push образа в Artifact Registry:
 
-### `legends`
+```bash
+bash scripts/cloudrun/build-image.sh
+```
 
-- `Series`
-- `SeriesTranslation`
-- `Province`
-- `ProvinceTranslation`
-- `Patron`
-- `PatronTranslation`
-- `Tag`
-- `TagTranslation`
-- `Legend`
-- `LegendTranslation`
+Скрипт использует:
 
-`Legend` хранит общую сущность публикации, а `LegendTranslation` хранит контент и SEO-поля для конкретного языка. Slug уникален в рамках `locale`.
+```bash
+gcloud builds submit \
+  --project "$PROJECT_ID" \
+  --tag "$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:$IMAGE_TAG" \
+  --file docker/web/Dockerfile \
+  .
+```
 
-Серии, провинции, покровители и теги также хранят переводы в отдельных таблицах. Публичные taxonomy URL теперь локализованы и используют slug перевода, а не базовой сущности.
+## Push Image
 
-### `comments`
+Отдельный push не нужен: `gcloud builds submit --tag ...` сразу собирает и публикует образ в Artifact Registry.
 
-- `Comment`
-- `CommentModerationEvent`
+Если нужен явный URI образа:
 
-Все комментарии создаются в статусе `pending` и должны быть промодерированы через Django admin.
+```bash
+export IMAGE_URI="$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:$IMAGE_TAG"
+```
 
-## Что подготовлено под следующий этап
+## Attach Secrets
 
-- production settings
-- `production.txt` для отдельных зависимостей
-- статика и медиа с выделенными путями
-- журнал событий модерации
-- структура, готовая к переходу на Gunicorn
+Создай секреты в Secret Manager:
 
-## Замечания по текущему этапу
+```bash
+printf '%s' 'replace-with-real-django-secret-key' | gcloud secrets create django-secret-key --data-file=-
+printf '%s' 'replace-with-real-db-password' | gcloud secrets create postgres-password --data-file=-
+printf '%s' 'replace-with-real-superuser-password' | gcloud secrets create django-superuser-password --data-file=-
+```
 
-- Публичные аккаунты пользователей не добавлены.
-- CAPTCHA и rate limiting пока не внедрены.
+Если секрет уже существует, используй новую версию:
+
+```bash
+printf '%s' 'new-value' | gcloud secrets versions add django-secret-key --data-file=-
+```
+
+Строка для деплоя:
+
+```bash
+export SECRETS_SPEC="DJANGO_SECRET_KEY=django-secret-key:latest,POSTGRES_PASSWORD=postgres-password:latest,DJANGO_SUPERUSER_PASSWORD=django-superuser-password:latest"
+```
+
+Не клади реальные секреты в `.env.production`.
+
+## Attach Cloud SQL
+
+Подготовь Cloud SQL instance и базу данных. Затем:
+
+```bash
+export CLOUD_SQL_CONNECTION_NAME="your-project-id:europe-west1:ostrov-quest-db"
+export SERVICE_ACCOUNT="ostrov-quest-run@${PROJECT_ID}.iam.gserviceaccount.com"
+```
+
+Cloud Run service и Cloud Run Jobs получают подключение к Cloud SQL через:
+
+- `--set-cloudsql-instances "$CLOUD_SQL_CONNECTION_NAME"`
+- env `CLOUD_SQL_CONNECTION_NAME`
+
+В production settings это приводит Django к Unix socket host:
+
+```text
+/cloudsql/your-project-id:europe-west1:ostrov-quest-db
+```
+
+## Configure Buckets
+
+Создай два buckets:
+
+```bash
+gcloud storage buckets create "gs://ostrov-quest-static" --project "$PROJECT_ID" --location "$REGION" --uniform-bucket-level-access
+gcloud storage buckets create "gs://ostrov-quest-media" --project "$PROJECT_ID" --location "$REGION" --uniform-bucket-level-access
+```
+
+Выдай service account доступ:
+
+```bash
+gcloud storage buckets add-iam-policy-binding "gs://ostrov-quest-static" \
+  --member "serviceAccount:$SERVICE_ACCOUNT" \
+  --role "roles/storage.objectAdmin"
+
+gcloud storage buckets add-iam-policy-binding "gs://ostrov-quest-media" \
+  --member "serviceAccount:$SERVICE_ACCOUNT" \
+  --role "roles/storage.objectAdmin"
+```
+
+Non-secret значения для production env-файла:
+
+```dotenv
+GOOGLE_CLOUD_PROJECT=your-project-id
+GCS_STATIC_BUCKET_NAME=ostrov-quest-static
+GCS_MEDIA_BUCKET_NAME=ostrov-quest-media
+GCS_STATIC_PREFIX=static
+GCS_MEDIA_PREFIX=media
+```
+
+## Deploy To Cloud Run
+
+Подготовь production env-файл без секретов, например `.env.production`, на основе [`.env.production.example`](/C:/Users/rakat/PyCharmMiscProject/.env.production.example). Для `gcloud run deploy --env-vars-file` используй уже чистый файл без комментариев.
+
+Минимальный набор экспортов:
+
+```bash
+export PROJECT_ID="your-project-id"
+export REGION="europe-west1"
+export SERVICE_NAME="ostrov-quest-web"
+export IMAGE_URI="$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:$IMAGE_TAG"
+export SERVICE_ACCOUNT="ostrov-quest-run@${PROJECT_ID}.iam.gserviceaccount.com"
+export ENV_VARS_FILE=".env.production"
+export SECRETS_SPEC="DJANGO_SECRET_KEY=django-secret-key:latest,POSTGRES_PASSWORD=postgres-password:latest,DJANGO_SUPERUSER_PASSWORD=django-superuser-password:latest"
+export CLOUD_SQL_CONNECTION_NAME="your-project-id:europe-west1:ostrov-quest-db"
+```
+
+Деплой сервиса:
+
+```bash
+bash scripts/cloudrun/deploy-service.sh
+```
+
+Скрипт выполняет `gcloud run deploy` и настраивает:
+
+- образ из Artifact Registry
+- service account
+- `PORT=8080`
+- startup probe на `/ready/`
+- env vars из файла
+- secrets из Secret Manager
+- Cloud SQL connection
+
+## Run Migrations
+
+Release-задачи выполняются отдельно от веб-сервиса через Cloud Run Jobs.
+
+Прогон миграций:
+
+```bash
+bash scripts/cloudrun/run-job.sh ostrov-quest-migrate python manage.py migrate --noinput
+```
+
+или:
+
+```bash
+make cloud-migrate
+```
+
+## Run Collectstatic
+
+`collectstatic` пишет прямо в GCS-backed static storage:
+
+```bash
+bash scripts/cloudrun/run-job.sh ostrov-quest-collectstatic python manage.py collectstatic --noinput
+```
+
+или:
+
+```bash
+make cloud-collectstatic
+```
+
+## Create Superuser
+
+Для bootstrap admin используй отдельный job:
+
+```bash
+bash scripts/cloudrun/run-job.sh ostrov-quest-superuser python manage.py ensure_superuser --skip-if-missing
+```
+
+или:
+
+```bash
+make cloud-superuser
+```
+
+Команда `ensure_superuser` создаёт или обновляет superuser из:
+
+- `DJANGO_SUPERUSER_USERNAME`
+- `DJANGO_SUPERUSER_EMAIL`
+- `DJANGO_SUPERUSER_PASSWORD`
+
+Если env не заданы и передан `--skip-if-missing`, job завершается без ошибки.
+
+## Check Deploy Configuration
+
+Перед миграциями полезно прогнать:
+
+```bash
+bash scripts/cloudrun/run-job.sh ostrov-quest-check python manage.py check --deploy
+```
+
+или:
+
+```bash
+make cloud-check
+```
+
+## Verify Deployment
+
+После деплоя проверь:
+
+```bash
+curl -i "https://YOUR_RUN_APP_URL/health/"
+curl -i "https://YOUR_RUN_APP_URL/ready/"
+```
+
+Ожидаемо:
+
+- `/health/` возвращает `200 {"status":"ok"}`
+- `/ready/` возвращает `200 {"status":"ok","database":"ok"}`
+
+Также проверь:
+
+- `/admin/` загружается со стилями
+- загрузка изображения в admin пишет файл в GCS media bucket
+- публичные страницы отдают ссылки на файлы из `storage.googleapis.com/...`
+
+## Recommended Release Workflow
+
+Практический порядок:
+
+1. Собрать и запушить образ в Artifact Registry.
+2. Задеплоить Cloud Run service с env vars, secrets и Cloud SQL attachment.
+3. Прогнать `check --deploy`.
+4. Прогнать `migrate`.
+5. Прогнать `collectstatic`.
+6. При необходимости выполнить `ensure_superuser`.
+7. Проверить `/health/`, `/ready/`, `/admin/`.
+8. После этого подключить сервис к global external Application Load Balancer и домену `ostrov.quest`.
+
+Миграции и `collectstatic` не запускаются автоматически на старте web-контейнера.
+
+## Notes About Custom Domain And Load Balancer
+
+Этот проект подготовлен для работы за custom domain `ostrov.quest` через global external Application Load Balancer.
+
+Что уже учтено в приложении:
+
+- `SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")`
+- `SESSION_COOKIE_SECURE = True`
+- `CSRF_COOKIE_SECURE = True`
+- `DEBUG = False` в production
+- `ALLOWED_HOSTS` и `CSRF_TRUSTED_ORIGINS` читаются из env
+
+Рекомендуемый production-вариант:
+
+- external Application Load Balancer
+- HTTPS frontend
+- managed certificate
+- serverless NEG на Cloud Run service
+- redirect `www -> apex` или `http -> https` на уровне load balancer, а не в Django-коде
+
+Это проще и надёжнее, чем реализовывать canonical redirect внутри приложения.
+
+## Typical Troubleshooting Steps
+
+`/ready/` возвращает `503`:
+
+- проверь `CLOUD_SQL_CONNECTION_NAME`
+- проверь, что Cloud Run service и jobs задеплоены с `--set-cloudsql-instances`
+- проверь `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
+- проверь роль `roles/cloudsql.client`
+
+Admin без CSS:
+
+- не выполнен `collectstatic`
+- неверно настроен `GCS_STATIC_BUCKET_NAME`
+- service account не имеет доступа к static bucket
+
+Загрузка media не работает:
+
+- отсутствует доступ к media bucket
+- не настроен `GCS_MEDIA_BUCKET_NAME`
+- bucket не существует
+
+`403 CSRF verification failed`:
+
+- проверь `DJANGO_CSRF_TRUSTED_ORIGINS`
+- для `ostrov.quest` должны быть абсолютные HTTPS origins, например `https://ostrov.quest`
+
+Бесконечный SSL redirect:
+
+- проверь, что перед приложением используется HTTPS
+- проверь `X-Forwarded-Proto`
+- временно отключи `DJANGO_SECURE_SSL_REDIRECT`, если тестируешь нестандартный прокси
+
+Cloud Run стартует, но приложение недоступно:
+
+- контейнер должен слушать `0.0.0.0:$PORT`
+- production image использует Gunicorn и читает `PORT` из env
+- startup probe настроен на `/ready/`, поэтому приложение не должно принимать трафик до готовности БД

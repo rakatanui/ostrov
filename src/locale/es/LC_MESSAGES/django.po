@@ -84,12 +84,8 @@ msgid "Легенды Острова"
 msgstr "Leyendas de la Isla"
 
 #: templates/base.html:43
-msgid ""
-"Черновой проект сайта для публикации литературных легенд с редакторской "
-"модерацией."
-msgstr ""
-"Una primera versión del sitio para publicar leyendas literarias con "
-"moderación editorial."
+msgid "Литературные легенды, мифы и предания острова."
+msgstr "Leyendas literarias, mitos y tradiciones de la isla."
 
 #: templates/base.html:52
 msgid "Архив островных историй, мифов и преданий."
@@ -102,14 +98,6 @@ msgstr "Navegación principal"
 #: templates/base.html:56
 msgid "Главная"
 msgstr "Inicio"
-
-#: templates/base.html:57
-msgid "Админка"
-msgstr "Administración"
-
-#: templates/base.html:58
-msgid "Проверить здоровье сервиса"
-msgstr "Health endpoint"
 
 #: templates/base.html:63
 msgid "Тема"
@@ -136,26 +124,16 @@ msgid "Легенды, которые держат память острова."
 msgstr "Leyendas que sostienen la memoria de la isla."
 
 #: templates/core/home.html:11
-msgid ""
-"На этом этапе готов фундамент проекта: публичная главная страница, "
-"локализация, модели легенд и комментариев, а также встроенная админка для "
-"редакторов."
-msgstr ""
-"En esta etapa ya está listo el fundamento del proyecto: una página principal "
-"pública, localización, modelos de leyendas y comentarios, y un panel de "
-"administración integrado para editores."
+msgid "Собрание литературных легенд, мифов и преданий, сохраняющих память острова."
+msgstr "Una colección de leyendas literarias, mitos y tradiciones que conservan la memoria de la isla."
 
 #: templates/core/home.html:17
 msgid "Опубликованные легенды"
 msgstr "Leyendas publicadas"
 
 #: templates/core/home.html:28
-msgid ""
-"Пока опубликованных легенд нет. Добавь записи через админку, и они появятся "
-"здесь автоматически."
-msgstr ""
-"Todavía no hay leyendas publicadas. Añade entradas desde el panel de "
-"administración y aparecerán aquí automáticamente."
+msgid "Сейчас в архиве ещё нет опубликованных легенд."
+msgstr "Todavía no hay leyendas publicadas en el archivo."
 
 #: templates/legends/_legend_card.html:5
 msgid "Опубликованные переводы"

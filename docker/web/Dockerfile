@@ -20,6 +20,11 @@ RUN pip install --upgrade pip \
 
 COPY . /app
 
+WORKDIR /app/src
+RUN DJANGO_SETTINGS_MODULE=config.settings.base \
+    DJANGO_SECRET_KEY=build-time-secret \
+    django-admin compilemessages
+
 RUN addgroup --system app \
     && adduser --system --ingroup app --home /home/app app \
     && chmod +x /app/docker/web/entrypoint.sh /app/docker/web/start-web.sh \

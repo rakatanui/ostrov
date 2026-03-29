@@ -2,132 +2,234 @@ msgid ""
 msgstr ""
 "Project-Id-Version: legends-island\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-29 00:00+0000\n"
+"POT-Creation-Date: 2026-03-29 19:46+0000\n"
 "PO-Revision-Date: 2026-03-29 00:00+0000\n"
 "Last-Translator: Codex\n"
-"Language: en\n"
 "Language-Team: \n"
+"Language: en\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-msgid "Легенды Острова"
-msgstr "Legends of the Island"
-
-msgid "Черновой проект сайта для публикации литературных легенд с редакторской модерацией."
-msgstr "An early-stage publishing site for literary legends with editorial moderation."
-
-msgid "Архив островных историй, мифов и преданий."
-msgstr "An archive of island stories, myths, and legends."
-
-msgid "Основная навигация"
-msgstr "Main navigation"
-
-msgid "Главная"
-msgstr "Home"
-
-msgid "Админка"
-msgstr "Admin"
-
-msgid "Проверить здоровье сервиса"
-msgstr "Health endpoint"
-
-msgid "Язык"
-msgstr "Language"
-
-msgid "Легенды, которые держат память острова."
-msgstr "Legends that carry the island's memory."
-
-msgid "На этом этапе готов фундамент проекта: публичная главная страница, локализация, модели легенд и комментариев, а также встроенная админка для редакторов."
-msgstr "At this stage the project foundation is ready: a public homepage, localization, legend and comment models, and a built-in admin for editors."
-
-msgid "Опубликованные легенды"
-msgstr "Published legends"
-
-msgid "Серия"
-msgstr "Series"
-
-msgid "Провинция"
-msgstr "Province"
-
-msgid "Покровитель"
-msgstr "Patron"
-
-msgid "Теги"
-msgstr "Tags"
-
-msgid "Нет"
-msgstr "None"
-
-msgid "Пока опубликованных легенд нет. Добавь записи через админку, и они появятся здесь автоматически."
-msgstr "There are no published legends yet. Add records through the admin and they will appear here automatically."
-
-msgid "Читать полностью"
-msgstr "Read the full legend"
-
-msgid "Другие языки этой легенды"
-msgstr "Other languages of this legend"
-
-msgid "Навигация по легенде"
-msgstr "Legend navigation"
-
-msgid "Полный текст"
-msgstr "Full text"
-
-msgid "Вернуться на главную"
-msgstr "Back to the homepage"
-
-msgid "Подборка опубликованных легенд по выбранному разделу."
-msgstr "A selection of published legends in the chosen section."
-
-msgid "Легенды в этом разделе"
-msgstr "Legends in this section"
-
-msgid "В этом разделе пока нет опубликованных легенд."
-msgstr "There are no published legends in this section yet."
-
-msgid "Тег"
-msgstr "Tag"
-
-msgid "Раздел"
-msgstr "Section"
-
-msgid "Комментарии"
-msgstr "Comments"
-
-msgid "Пока нет одобренных комментариев."
-msgstr "There are no approved comments yet."
-
-msgid "Оставить комментарий"
-msgstr "Leave a comment"
-
-msgid "Ваш комментарий будет опубликован только после проверки редактором."
-msgstr "Your comment will be published only after editorial review."
-
+#: apps/comments/forms.py:12
 msgid "Имя"
 msgstr "Name"
 
+#: apps/comments/forms.py:13
+msgid "Email"
+msgstr ""
+
+#: apps/comments/forms.py:14
 msgid "Текст комментария"
 msgstr "Comment text"
 
-msgid "Отправить на модерацию"
-msgstr "Submit for moderation"
-
+#: apps/comments/forms.py:39
 msgid "Введите имя."
 msgstr "Enter your name."
 
+#: apps/comments/forms.py:51
 msgid "Введите текст комментария."
 msgstr "Enter your comment."
 
-msgid "Комментарий отправлен на модерацию. Он появится после проверки редактором."
-msgstr "Your comment has been submitted for moderation. It will appear after editorial review."
+#: apps/legends/views.py:68
+msgid ""
+"Комментарий отправлен на модерацию. Он появится после проверки редактором."
+msgstr ""
+"Your comment has been submitted for moderation. It will appear after "
+"editorial review."
 
+#: apps/legends/views.py:94
+msgid "Раздел"
+msgstr "Section"
+
+#: apps/legends/views.py:129 templates/legends/_legend_card.html:36
+#: templates/legends/detail.html:44
+msgid "Серия"
+msgstr "Series"
+
+#: apps/legends/views.py:135 templates/legends/_legend_card.html:46
+#: templates/legends/detail.html:54
+msgid "Провинция"
+msgstr "Province"
+
+#: apps/legends/views.py:141 templates/legends/_legend_card.html:56
+#: templates/legends/detail.html:64
+msgid "Покровитель"
+msgstr "Patron"
+
+#: apps/legends/views.py:147
+msgid "Тег"
+msgstr "Tag"
+
+#: config/settings/base.py:115
+msgid "Russian"
+msgstr ""
+
+#: config/settings/base.py:116
+msgid "English"
+msgstr ""
+
+#: config/settings/base.py:117
+msgid "German"
+msgstr ""
+
+#: config/settings/base.py:118
+msgid "Spanish"
+msgstr ""
+
+#: templates/base.html:42 templates/base.html:51 templates/core/home.html:4
+#: templates/core/home.html:9
+msgid "Легенды Острова"
+msgstr "Legends of the Island"
+
+#: templates/base.html:43
+msgid ""
+"Черновой проект сайта для публикации литературных легенд с редакторской "
+"модерацией."
+msgstr ""
+"An early-stage publishing site for literary legends with editorial "
+"moderation."
+
+#: templates/base.html:52
+msgid "Архив островных историй, мифов и преданий."
+msgstr "An archive of island stories, myths, and legends."
+
+#: templates/base.html:55
+msgid "Основная навигация"
+msgstr "Main navigation"
+
+#: templates/base.html:56
+msgid "Главная"
+msgstr "Home"
+
+#: templates/base.html:57
+msgid "Админка"
+msgstr "Admin"
+
+#: templates/base.html:58
+msgid "Проверить здоровье сервиса"
+msgstr "Health endpoint"
+
+#: templates/base.html:63
+msgid "Тема"
+msgstr "Theme"
+
+#: templates/base.html:69 templates/base.html:70 templates/base.html:76
+msgid "Светлая тема"
+msgstr "Light theme"
+
+#: templates/base.html:83 templates/base.html:84 templates/base.html:89
+msgid "Темная тема"
+msgstr "Dark theme"
+
+#: templates/base.html:96 templates/base.html:97 templates/base.html:103
+msgid "Системная тема"
+msgstr "System theme"
+
+#: templates/base.html:106
+msgid "Язык"
+msgstr "Language"
+
+#: templates/core/home.html:8
+msgid "Легенды, которые держат память острова."
+msgstr "Legends that carry the island's memory."
+
+#: templates/core/home.html:11
+msgid ""
+"На этом этапе готов фундамент проекта: публичная главная страница, "
+"локализация, модели легенд и комментариев, а также встроенная админка для "
+"редакторов."
+msgstr ""
+"At this stage the project foundation is ready: a public homepage, "
+"localization, legend and comment models, and a built-in admin for editors."
+
+#: templates/core/home.html:17
+msgid "Опубликованные легенды"
+msgstr "Published legends"
+
+#: templates/core/home.html:28
+msgid ""
+"Пока опубликованных легенд нет. Добавь записи через админку, и они появятся "
+"здесь автоматически."
+msgstr ""
+"There are no published legends yet. Add records through the admin and they "
+"will appear here automatically."
+
+#: templates/legends/_legend_card.html:5
 msgid "Опубликованные переводы"
 msgstr "Published translations"
 
+#: templates/legends/_legend_card.html:30
+msgid "Читать полностью"
+msgstr "Read the full legend"
+
+#: templates/legends/_legend_card.html:41
+#: templates/legends/_legend_card.html:51
+#: templates/legends/_legend_card.html:61
+#: templates/legends/_legend_card.html:71 templates/legends/detail.html:49
+#: templates/legends/detail.html:59 templates/legends/detail.html:69
+#: templates/legends/detail.html:79
+msgid "Нет"
+msgstr "None"
+
+#: templates/legends/_legend_card.html:66 templates/legends/detail.html:74
+msgid "Теги"
+msgstr "Tags"
+
+#: templates/legends/detail.html:21 templates/legends/detail.html:23
+msgid "Другие языки этой легенды"
+msgstr "Other languages of this legend"
+
+#: templates/legends/detail.html:40
+msgid "Навигация по легенде"
+msgstr "Legend navigation"
+
+#: templates/legends/detail.html:88
+msgid "Полный текст"
+msgstr "Full text"
+
+#: templates/legends/detail.html:97
+msgid "Комментарии"
+msgstr "Comments"
+
+#: templates/legends/detail.html:110
 msgid "Показывать комментарии со всех языков этой легенды"
 msgstr "Show comments from all languages of this legend"
 
+#: templates/legends/detail.html:112
 msgid "Применить"
 msgstr "Apply"
+
+#: templates/legends/detail.html:138
+msgid "Пока нет одобренных комментариев."
+msgstr "There are no approved comments yet."
+
+#: templates/legends/detail.html:144
+msgid "Оставить комментарий"
+msgstr "Leave a comment"
+
+#: templates/legends/detail.html:147
+msgid "Ваш комментарий будет опубликован только после проверки редактором."
+msgstr "Your comment will be published only after editorial review."
+
+#: templates/legends/detail.html:188
+msgid "Отправить на модерацию"
+msgstr "Submit for moderation"
+
+#: templates/legends/detail.html:193
+msgid "Вернуться на главную"
+msgstr "Back to the homepage"
+
+#: templates/legends/taxonomy_list.html:9
+#: templates/legends/taxonomy_list.html:20
+msgid "Подборка опубликованных легенд по выбранному разделу."
+msgstr "A selection of published legends in the chosen section."
+
+#: templates/legends/taxonomy_list.html:26
+msgid "Легенды в этом разделе"
+msgstr "Legends in this section"
+
+#: templates/legends/taxonomy_list.html:36
+msgid "В этом разделе пока нет опубликованных легенд."
+msgstr "There are no published legends in this section yet."

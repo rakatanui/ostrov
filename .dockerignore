@@ -1,4 +1,5 @@
 .git
+.gitignore
 .venv
 __pycache__/
 *.py[cod]
@@ -7,6 +8,11 @@ __pycache__/
 .ruff_cache/
 .idea/
 .env
+.env.*
+!.env.example
+!.env.production.example
 media/
 staticfiles/
+docker-compose.override.yml
+compose.override.yml
 src/locale/*/LC_MESSAGES/*.mo

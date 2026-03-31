@@ -1,6 +1,9 @@
 COMPOSE = docker compose
+export ENV_TEMPLATE_FILE ?= cloudrun.production.env.yaml
+export ENV_VARS_FILE ?= cloudrun.production.rendered.env.yaml
+export JOB_NAME_PREFIX ?= ostrov-quest
 
-.PHONY: up down build logs shell migrate makemigrations createsuperuser check compilemessages
+.PHONY: up down build logs shell migrate makemigrations createsuperuser check compilemessages cloud-render-env cloud-build cloud-deploy cloud-migrate cloud-collectstatic cloud-check cloud-superuser
 
 up:
 	$(COMPOSE) up --build
@@ -32,3 +35,23 @@ check:
 compilemessages:
 	$(COMPOSE) exec web python manage.py compilemessages
 
+cloud-render-env:
+	bash scripts/cloudrun/render-env-file.sh $(ENV_TEMPLATE_FILE) $(ENV_VARS_FILE)
+
+cloud-build:
+	bash scripts/cloudrun/build-image.sh
+
+cloud-deploy:
+	bash scripts/cloudrun/deploy-service.sh
+
+cloud-migrate:
+	bash scripts/cloudrun/run-job.sh $(JOB_NAME_PREFIX)-migrate python manage.py migrate --noinput
+
+cloud-collectstatic:
+	bash scripts/cloudrun/run-job.sh $(JOB_NAME_PREFIX)-collectstatic python manage.py collectstatic --noinput
+
+cloud-check:
+	bash scripts/cloudrun/run-job.sh $(JOB_NAME_PREFIX)-check python manage.py check --deploy
+
+cloud-superuser:
+	bash scripts/cloudrun/run-job.sh $(JOB_NAME_PREFIX)-superuser python manage.py ensure_superuser --skip-if-missing

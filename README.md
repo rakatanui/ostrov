@@ -108,7 +108,7 @@ Service account Cloud Run должен иметь минимум:
 Шаблоны:
 
 - локальная разработка: `.env.example`
-- production Cloud Run service/jobs: `cloudrun.production.env.yaml`
+- production Cloud Run service/jobs: `cloudrun.production.env.yaml` (template)
 
 Ключевые production env vars:
 
@@ -128,6 +128,12 @@ Service account Cloud Run должен иметь минимум:
 - `GUNICORN_WORKERS`
 - `GUNICORN_THREADS`
 - `GUNICORN_TIMEOUT`
+
+Важно:
+
+- `PORT` не должен задаваться в `cloudrun.production.env.yaml`
+- для Cloud Run это reserved env name; сервис получает `PORT` от платформы автоматически
+- production deploy по-прежнему использует `--port 8080` в `gcloud run deploy`, этого достаточно
 
 Поддерживаются два способа конфигурации БД:
 
@@ -271,7 +277,20 @@ GCS_MEDIA_PREFIX: media
 
 ## Deploy To Cloud Run
 
-Подготовь production env-файл без секретов в YAML-формате, например `cloudrun.production.env.yaml`.
+Подготовь production env template без секретов в YAML-формате: `cloudrun.production.env.yaml`.
+
+Для ручного deploy сначала отрендери project-specific значения в отдельный файл:
+
+```bash
+export GOOGLE_CLOUD_PROJECT="$PROJECT_ID"
+export CLOUD_SQL_CONNECTION_NAME="${PROJECT_ID}:europe-west1:ostrov-quest-db"
+export GCS_STATIC_BUCKET_NAME="ostrov-quest-static"
+export GCS_MEDIA_BUCKET_NAME="ostrov-quest-media"
+
+bash scripts/cloudrun/render-env-file.sh \
+  cloudrun.production.env.yaml \
+  cloudrun.production.rendered.env.yaml
+```
 
 Минимальный набор экспортов:
 
@@ -281,9 +300,9 @@ export REGION="europe-west1"
 export SERVICE_NAME="ostrov-quest-web"
 export IMAGE_URI="$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:$IMAGE_TAG"
 export SERVICE_ACCOUNT="ostrov-quest-run@${PROJECT_ID}.iam.gserviceaccount.com"
-export ENV_VARS_FILE="cloudrun.production.env.yaml"
+export ENV_VARS_FILE="cloudrun.production.rendered.env.yaml"
 export SECRETS_SPEC="DJANGO_SECRET_KEY=django-secret-key:latest,POSTGRES_PASSWORD=postgres-password:latest,DJANGO_SUPERUSER_PASSWORD=django-superuser-password:latest"
-export CLOUD_SQL_CONNECTION_NAME="your-project-id:europe-west1:ostrov-quest-db"
+export CLOUD_SQL_CONNECTION_NAME="${PROJECT_ID}:europe-west1:ostrov-quest-db"
 ```
 
 По умолчанию deploy script использует:
@@ -313,7 +332,7 @@ bash scripts/cloudrun/deploy-service.sh
 
 - образ из Artifact Registry
 - service account
-- `PORT=8080`
+- `--port 8080`
 - startup probe на `/ready/`
 - env vars из файла
 - secrets из Secret Manager
@@ -400,10 +419,11 @@ Pipeline в Cloud Build делает это:
 
 1. собирает image `$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/$_IMAGE_NAME:$COMMIT_SHA`
 2. пушит image в Artifact Registry
-3. деплоит Cloud Run service через `gcloud run deploy --no-traffic`
-4. деплоит или обновляет Cloud Run Jobs `check`, `migrate`, `collectstatic`, `superuser`
-5. выполняет jobs строго последовательно
-6. переключает трафик на latest revision только если все предыдущие шаги завершились успешно
+3. рендерит временный env file из `cloudrun.production.env.yaml` и trigger substitutions
+4. деплоит Cloud Run service через `gcloud run deploy --no-traffic`
+5. деплоит или обновляет Cloud Run Jobs `check`, `migrate`, `collectstatic`, `superuser`
+6. выполняет jobs строго последовательно
+7. переключает трафик на latest revision только если все предыдущие шаги завершились успешно
 
 Это не ломает ручной путь: `build-image.sh`, `deploy-service.sh` и `run-job.sh` остаются рабочими для ручного release и для initial provisioning.
 
@@ -419,20 +439,17 @@ Pipeline в Cloud Build делает это:
 8. Branch regex: `^main$`.
 9. Configuration: `Cloud Build configuration file`.
 10. Path to config: `cloudbuild.production.yaml`.
-11. В substitutions укажи production значения:
+11. В substitutions укажи обязательные production значения:
 
 ```text
-_REGION=europe-west1
-_REPOSITORY=ostrov-quest
-_IMAGE_NAME=ostrov-quest-web
-_SERVICE_NAME=ostrov-quest-web
-_SERVICE_ACCOUNT_NAME=ostrov-quest-run
-_JOB_NAME_PREFIX=ostrov-quest
-_ENV_VARS_FILE=cloudrun.production.env.yaml
-_SECRETS_SPEC=DJANGO_SECRET_KEY=django-secret-key:latest,POSTGRES_PASSWORD=postgres-password:latest,DJANGO_SUPERUSER_PASSWORD=django-superuser-password:latest
-_CLOUD_SQL_CONNECTION_NAME=your-project-id:europe-west1:ostrov-quest-db
-_INGRESS=internal-and-cloud-load-balancing
+_CLOUD_SQL_CONNECTION_NAME=<PROJECT_ID>:europe-west1:ostrov-quest-db
+_GCS_STATIC_BUCKET_NAME=ostrov-quest-static
+_GCS_MEDIA_BUCKET_NAME=ostrov-quest-media
 ```
+
+Этого достаточно, если остальные defaults из `cloudbuild.production.yaml` совпадают с текущим production проектом.
+
+`GOOGLE_CLOUD_PROJECT` в runtime env подставляется автоматически из built-in Cloud Build `PROJECT_ID`, поэтому отдельная substitution для него не нужна.
 
 После этого любой merge или push в `main` автоматически запускает production pipeline через Cloud Build.
 

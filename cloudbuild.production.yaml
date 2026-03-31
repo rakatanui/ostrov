@@ -7,9 +7,12 @@ substitutions:
   _SERVICE_NAME: ostrov-quest-web
   _SERVICE_ACCOUNT_NAME: ostrov-quest-run
   _JOB_NAME_PREFIX: ostrov-quest
-  _ENV_VARS_FILE: cloudrun.production.env.yaml
+  _ENV_TEMPLATE_FILE: cloudrun.production.env.yaml
+  _ENV_VARS_FILE: cloudrun.production.rendered.env.yaml
   _SECRETS_SPEC: DJANGO_SECRET_KEY=django-secret-key:latest,POSTGRES_PASSWORD=postgres-password:latest,DJANGO_SUPERUSER_PASSWORD=django-superuser-password:latest
-  _CLOUD_SQL_CONNECTION_NAME: your-project-id:europe-west1:ostrov-quest-db
+  _CLOUD_SQL_CONNECTION_NAME: REQUIRED
+  _GCS_STATIC_BUCKET_NAME: REQUIRED
+  _GCS_MEDIA_BUCKET_NAME: REQUIRED
   _INGRESS: internal-and-cloud-load-balancing
   _SERVICE_MEMORY: 512Mi
   _SERVICE_CPU: "1"
@@ -29,20 +32,33 @@ steps:
     args:
       - -ceu
       - |
-        if [[ "${_CLOUD_SQL_CONNECTION_NAME}" == your-project-id:* ]]; then
-          echo "_CLOUD_SQL_CONNECTION_NAME must be overridden in the trigger or manual build command." >&2
+        if [[ ! -f "${_ENV_TEMPLATE_FILE}" ]]; then
+          echo "Missing env vars template file: ${_ENV_TEMPLATE_FILE}" >&2
           exit 1
         fi
 
-        if [[ ! -f "${_ENV_VARS_FILE}" ]]; then
-          echo "Missing env vars file: ${_ENV_VARS_FILE}" >&2
-          exit 1
-        fi
+        for required_value in \
+          "${_CLOUD_SQL_CONNECTION_NAME}" \
+          "${_GCS_STATIC_BUCKET_NAME}" \
+          "${_GCS_MEDIA_BUCKET_NAME}"; do
+          if [[ "${required_value}" == "REQUIRED" || -z "${required_value}" ]]; then
+            echo "Set required trigger substitutions: _CLOUD_SQL_CONNECTION_NAME, _GCS_STATIC_BUCKET_NAME, _GCS_MEDIA_BUCKET_NAME." >&2
+            exit 1
+          fi
+        done
 
-        if grep -n "your-project-id" "${_ENV_VARS_FILE}" >/dev/null; then
-          echo "Replace placeholder values in ${_ENV_VARS_FILE} before enabling the production trigger." >&2
-          exit 1
-        fi
+  - id: render-env-file
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        export GOOGLE_CLOUD_PROJECT="${PROJECT_ID}"
+        export CLOUD_SQL_CONNECTION_NAME="${_CLOUD_SQL_CONNECTION_NAME}"
+        export GCS_STATIC_BUCKET_NAME="${_GCS_STATIC_BUCKET_NAME}"
+        export GCS_MEDIA_BUCKET_NAME="${_GCS_MEDIA_BUCKET_NAME}"
+
+        bash scripts/cloudrun/render-env-file.sh "${_ENV_TEMPLATE_FILE}" "${_ENV_VARS_FILE}"
 
   - id: build-image
     name: gcr.io/cloud-builders/docker

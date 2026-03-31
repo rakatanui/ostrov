@@ -342,6 +342,8 @@ The Cloud Build service account must be able to:
 * access Secret Manager references used by deployment
 * work with Cloud SQL attachment settings used by Cloud Run
 
+If the trigger uses a user-specified Cloud Build service account, `cloudbuild.production.yaml` is configured with `options.logging: CLOUD_LOGGING_ONLY`, so that service account must also have `roles/logging.logWriter`.
+
 At minimum, review and grant the necessary roles for your environment before enabling the trigger.
 
 ## Service account for runtime

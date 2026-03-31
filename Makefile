@@ -1,8 +1,9 @@
 COMPOSE = docker compose
-export ENV_VARS_FILE ?= cloudrun.production.env.yaml
+export ENV_TEMPLATE_FILE ?= cloudrun.production.env.yaml
+export ENV_VARS_FILE ?= cloudrun.production.rendered.env.yaml
 export JOB_NAME_PREFIX ?= ostrov-quest
 
-.PHONY: up down build logs shell migrate makemigrations createsuperuser check compilemessages cloud-build cloud-deploy cloud-migrate cloud-collectstatic cloud-check cloud-superuser
+.PHONY: up down build logs shell migrate makemigrations createsuperuser check compilemessages cloud-render-env cloud-build cloud-deploy cloud-migrate cloud-collectstatic cloud-check cloud-superuser
 
 up:
 	$(COMPOSE) up --build
@@ -33,6 +34,9 @@ check:
 
 compilemessages:
 	$(COMPOSE) exec web python manage.py compilemessages
+
+cloud-render-env:
+	bash scripts/cloudrun/render-env-file.sh $(ENV_TEMPLATE_FILE) $(ENV_VARS_FILE)
 
 cloud-build:
 	bash scripts/cloudrun/build-image.sh

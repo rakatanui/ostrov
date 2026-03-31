@@ -11,8 +11,8 @@ IMAGE_URI="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE_NAME}:${
 
 gcloud builds submit \
   --project "${PROJECT_ID}" \
-  --tag "${IMAGE_URI}" \
-  --file docker/web/Dockerfile \
+  --config cloudbuild.image.yaml \
+  --substitutions "_IMAGE_URI=${IMAGE_URI}" \
   .
 
 printf 'Built image: %s\n' "${IMAGE_URI}"

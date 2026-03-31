@@ -1,4 +1,4 @@
-Django application for publishing the legends of Ostrov.
+# Django application for publishing the legends of Ostrov.
 
 The project provides:
 

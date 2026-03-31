@@ -1,5 +1,6 @@
 :root {
     color-scheme: light;
+    --font-sans: "Google Sans", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     --paper: #f5efe2;
     --paper-accent: #ebe0c8;
     --ink: #1f2430;
@@ -162,6 +163,7 @@
 
 html {
     background: var(--paper);
+    font-size: 17px;
 }
 
 body {
@@ -173,7 +175,8 @@ body {
         radial-gradient(circle at top right, var(--page-glow-2), transparent 24%),
         radial-gradient(circle at bottom left, var(--page-glow-3), transparent 34%),
         var(--page-bg);
-    font-family: Georgia, "Palatino Linotype", "Book Antiqua", serif;
+    font-family: var(--font-sans);
+    line-height: 1.6;
 }
 
 ::selection {
@@ -665,9 +668,9 @@ textarea:focus-visible {
 }
 
 .rich-text {
-    color: var(--ink);
-    font-size: 1.05rem;
-    line-height: 1.9;
+        color: var(--ink);
+    font-size: 1.25rem;
+    line-height: 1.5;
 }
 
 .legend-detail__back {

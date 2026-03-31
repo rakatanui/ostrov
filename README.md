@@ -108,7 +108,7 @@ Service account Cloud Run должен иметь минимум:
 Шаблоны:
 
 - локальная разработка: `.env.example`
-- production: `.env.production.example`
+- production Cloud Run service/jobs: `cloudrun.production.env.yaml`
 
 Ключевые production env vars:
 
@@ -198,7 +198,7 @@ printf '%s' 'new-value' | gcloud secrets versions add django-secret-key --data-f
 export SECRETS_SPEC="DJANGO_SECRET_KEY=django-secret-key:latest,POSTGRES_PASSWORD=postgres-password:latest,DJANGO_SUPERUSER_PASSWORD=django-superuser-password:latest"
 ```
 
-Не клади реальные секреты в `.env.production`.
+Не клади реальные секреты в `cloudrun.production.env.yaml`.
 
 ## Attach Cloud SQL
 
@@ -255,12 +255,12 @@ gcloud storage buckets add-iam-policy-binding "gs://ostrov-quest-media" \
 
 Non-secret значения для production env-файла:
 
-```dotenv
-GOOGLE_CLOUD_PROJECT=your-project-id
-GCS_STATIC_BUCKET_NAME=ostrov-quest-static
-GCS_MEDIA_BUCKET_NAME=ostrov-quest-media
-GCS_STATIC_PREFIX=static
-GCS_MEDIA_PREFIX=media
+```yaml
+GOOGLE_CLOUD_PROJECT: your-project-id
+GCS_STATIC_BUCKET_NAME: ostrov-quest-static
+GCS_MEDIA_BUCKET_NAME: ostrov-quest-media
+GCS_STATIC_PREFIX: static
+GCS_MEDIA_PREFIX: media
 ```
 
 Важно:
@@ -271,7 +271,7 @@ GCS_MEDIA_PREFIX=media
 
 ## Deploy To Cloud Run
 
-Подготовь production env-файл без секретов, например `.env.production`, на основе `.env.production.example`.
+Подготовь production env-файл без секретов в YAML-формате, например `cloudrun.production.env.yaml`.
 
 Минимальный набор экспортов:
 
@@ -281,7 +281,7 @@ export REGION="europe-west1"
 export SERVICE_NAME="ostrov-quest-web"
 export IMAGE_URI="$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:$IMAGE_TAG"
 export SERVICE_ACCOUNT="ostrov-quest-run@${PROJECT_ID}.iam.gserviceaccount.com"
-export ENV_VARS_FILE=".env.production"
+export ENV_VARS_FILE="cloudrun.production.env.yaml"
 export SECRETS_SPEC="DJANGO_SECRET_KEY=django-secret-key:latest,POSTGRES_PASSWORD=postgres-password:latest,DJANGO_SUPERUSER_PASSWORD=django-superuser-password:latest"
 export CLOUD_SQL_CONNECTION_NAME="your-project-id:europe-west1:ostrov-quest-db"
 ```
@@ -295,6 +295,12 @@ export CLOUD_SQL_CONNECTION_NAME="your-project-id:europe-west1:ostrov-quest-db"
 
 ```bash
 export INGRESS="all"
+```
+
+Для safe deploy без мгновенного переключения трафика:
+
+```bash
+export NO_TRAFFIC="true"
 ```
 
 Деплой сервиса:
@@ -312,6 +318,7 @@ bash scripts/cloudrun/deploy-service.sh
 - env vars из файла
 - secrets из Secret Manager
 - Cloud SQL connection
+- при `NO_TRAFFIC=true` создаёт новую revision без перевода production-трафика
 
 ## Run Migrations
 
@@ -365,6 +372,12 @@ make cloud-superuser
 
 Если env не заданы и передан `--skip-if-missing`, job завершается без ошибки.
 
+Если нужно только обновить definition job без запуска:
+
+```bash
+export EXECUTE_JOB="false"
+```
+
 ## Check Deploy Configuration
 
 Перед миграциями полезно прогнать:
@@ -378,6 +391,84 @@ bash scripts/cloudrun/run-job.sh ostrov-quest-check python manage.py check --dep
 ```bash
 make cloud-check
 ```
+
+## Automatic Production Deployment With Cloud Build
+
+В репозитории добавлен `cloudbuild.production.yaml` для production trigger по ветке `main`.
+
+Pipeline в Cloud Build делает это:
+
+1. собирает image `$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/$_IMAGE_NAME:$COMMIT_SHA`
+2. пушит image в Artifact Registry
+3. деплоит Cloud Run service через `gcloud run deploy --no-traffic`
+4. деплоит или обновляет Cloud Run Jobs `check`, `migrate`, `collectstatic`, `superuser`
+5. выполняет jobs строго последовательно
+6. переключает трафик на latest revision только если все предыдущие шаги завершились успешно
+
+Это не ломает ручной путь: `build-image.sh`, `deploy-service.sh` и `run-job.sh` остаются рабочими для ручного release и для initial provisioning.
+
+### GitHub -> Cloud Build Trigger
+
+1. Открой `Cloud Build -> Triggers`.
+2. Нажми `Connect repository`.
+3. Выбери регион trigger. Для Cloud Run-trigger workflow держи тот же регион, что и у production service.
+4. Выбери GitHub-репозиторий и подключи его к Cloud Build.
+5. Нажми `Create trigger`.
+6. Задай имя, например `ostrov-production-main`.
+7. Event: `Push to a branch`.
+8. Branch regex: `^main$`.
+9. Configuration: `Cloud Build configuration file`.
+10. Path to config: `cloudbuild.production.yaml`.
+11. В substitutions укажи production значения:
+
+```text
+_REGION=europe-west1
+_REPOSITORY=ostrov-quest
+_IMAGE_NAME=ostrov-quest-web
+_SERVICE_NAME=ostrov-quest-web
+_SERVICE_ACCOUNT_NAME=ostrov-quest-run
+_JOB_NAME_PREFIX=ostrov-quest
+_ENV_VARS_FILE=cloudrun.production.env.yaml
+_SECRETS_SPEC=DJANGO_SECRET_KEY=django-secret-key:latest,POSTGRES_PASSWORD=postgres-password:latest,DJANGO_SUPERUSER_PASSWORD=django-superuser-password:latest
+_CLOUD_SQL_CONNECTION_NAME=your-project-id:europe-west1:ostrov-quest-db
+_INGRESS=internal-and-cloud-load-balancing
+```
+
+После этого любой merge или push в `main` автоматически запускает production pipeline через Cloud Build.
+
+### IAM For Cloud Build Service Account
+
+Service account, под которым выполняется trigger, должен иметь минимум:
+
+- `roles/run.admin`
+- `roles/artifactregistry.writer`
+- `roles/logging.logWriter`
+- `roles/storage.admin`
+- `roles/iam.serviceAccountUser` на runtime service account `ostrov-quest-run@PROJECT_ID.iam.gserviceaccount.com`
+
+Runtime service account Cloud Run при этом по-прежнему должен иметь:
+
+- `roles/cloudsql.client`
+- `roles/secretmanager.secretAccessor`
+- `roles/storage.objectAdmin` на buckets для `static` и `media`
+
+### Rollback
+
+Если новая revision уже получила трафик и нужно откатиться:
+
+```bash
+gcloud run revisions list \
+  --project "$PROJECT_ID" \
+  --region "$REGION" \
+  --service "$SERVICE_NAME"
+
+gcloud run services update-traffic "$SERVICE_NAME" \
+  --project "$PROJECT_ID" \
+  --region "$REGION" \
+  --to-revisions PREVIOUS_REVISION=100
+```
+
+Если release jobs упали внутри Cloud Build, rollback трафика не нужен: pipeline не переведёт трафик на новую revision.
 
 ## Verify Deployment
 
@@ -435,16 +526,14 @@ curl -i "https://ostrov.quest/ready/"
 
 Практический порядок:
 
-1. Собрать и запушить образ в Artifact Registry.
-2. Создать buckets, назначить service account доступ на запись и публичный доступ на чтение.
-3. Задеплоить Cloud Run service с env vars, secrets и Cloud SQL attachment.
-4. Прогнать `check --deploy`.
-5. Прогнать `migrate`.
-6. Прогнать `collectstatic`.
-7. При необходимости выполнить `ensure_superuser`.
-8. Проверить `/health/`, `/ready/`, `/admin/`, доступность `static` и `media`.
-9. Подключить сервис к global external Application Load Balancer и домену `ostrov.quest`.
-10. Для финального production оставить ingress `internal-and-cloud-load-balancing`.
+1. Merge или push в `main` запускает Cloud Build trigger `ostrov-production-main`.
+2. Cloud Build собирает image и пушит его в Artifact Registry с tag=`$COMMIT_SHA`.
+3. Cloud Build деплоит новую Cloud Run revision без трафика.
+4. Cloud Build деплоит или обновляет release jobs на том же image.
+5. Cloud Build выполняет `check --deploy`, `migrate`, `collectstatic`, `ensure_superuser`.
+6. Только после success всех release jobs Cloud Build переводит трафик на latest revision.
+7. Если любой release job падает, production traffic остаётся на предыдущей revision.
+8. Ручные scripts остаются доступными для initial setup, hotfix и controlled rollback.
 
 Миграции и `collectstatic` не запускаются автоматически на старте web-контейнера.
 

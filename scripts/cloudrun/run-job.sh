@@ -16,6 +16,7 @@ JOB_MEMORY="${JOB_MEMORY:-512Mi}"
 JOB_CPU="${JOB_CPU:-1}"
 JOB_TIMEOUT="${JOB_TIMEOUT:-900s}"
 JOB_MAX_RETRIES="${JOB_MAX_RETRIES:-1}"
+EXECUTE_JOB="${EXECUTE_JOB:-true}"
 
 deploy_args=(
   run
@@ -50,4 +51,7 @@ if [[ -n "${CLOUD_SQL_CONNECTION_NAME:-}" ]]; then
 fi
 
 gcloud "${deploy_args[@]}"
-gcloud run jobs execute "${JOB_NAME}" --project "${PROJECT_ID}" --region "${REGION}" --wait
+
+if [[ "${EXECUTE_JOB}" == "true" ]]; then
+  gcloud run jobs execute "${JOB_NAME}" --project "${PROJECT_ID}" --region "${REGION}" --wait
+fi

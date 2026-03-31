@@ -15,6 +15,7 @@ REQUEST_TIMEOUT="${REQUEST_TIMEOUT:-300}"
 MIN_INSTANCES="${MIN_INSTANCES:-0}"
 MAX_INSTANCES="${MAX_INSTANCES:-10}"
 INGRESS="${INGRESS:-internal-and-cloud-load-balancing}"
+NO_TRAFFIC="${NO_TRAFFIC:-false}"
 
 deploy_args=(
   run
@@ -47,6 +48,10 @@ fi
 
 if [[ -n "${CLOUD_SQL_CONNECTION_NAME:-}" ]]; then
   deploy_args+=(--set-cloudsql-instances "${CLOUD_SQL_CONNECTION_NAME}")
+fi
+
+if [[ "${NO_TRAFFIC}" == "true" ]]; then
+  deploy_args+=(--no-traffic)
 fi
 
 gcloud "${deploy_args[@]}"

@@ -1,5 +1,5 @@
 COMPOSE = docker compose
-export ENV_VARS_FILE ?= .env.production
+export ENV_VARS_FILE ?= cloudrun.production.env.yaml
 export JOB_NAME_PREFIX ?= ostrov-quest
 
 .PHONY: up down build logs shell migrate makemigrations createsuperuser check compilemessages cloud-build cloud-deploy cloud-migrate cloud-collectstatic cloud-check cloud-superuser

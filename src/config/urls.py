@@ -4,7 +4,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
-from apps.core.views import HomeView, health_view
+from apps.core.views import HomeView, health_view, ready_view
 
 admin.site.site_header = "Legends of the Island administration"
 admin.site.site_title = "Legends of the Island admin"
@@ -12,6 +12,7 @@ admin.site.index_title = "Editorial control panel"
 
 urlpatterns = [
     path("health/", health_view, name="health"),
+    path("ready/", ready_view, name="ready"),
     path("i18n/", include("django.conf.urls.i18n")),
     path("admin/", admin.site.urls),
 ]

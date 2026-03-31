@@ -1,0 +1,178 @@
+timeout: 3600s
+
+substitutions:
+  _REGION: europe-west1
+  _REPOSITORY: ostrov-quest
+  _IMAGE_NAME: ostrov-quest-web
+  _SERVICE_NAME: ostrov-quest-web
+  _SERVICE_ACCOUNT_NAME: ostrov-quest-run
+  _JOB_NAME_PREFIX: ostrov-quest
+  _ENV_TEMPLATE_FILE: cloudrun.production.env.yaml
+  _ENV_VARS_FILE: cloudrun.production.rendered.env.yaml
+  _SECRETS_SPEC: DJANGO_SECRET_KEY=django-secret-key:latest,POSTGRES_PASSWORD=postgres-password:latest,DJANGO_SUPERUSER_PASSWORD=django-superuser-password:latest
+  _CLOUD_SQL_CONNECTION_NAME: REQUIRED
+  _GCS_STATIC_BUCKET_NAME: REQUIRED
+  _GCS_MEDIA_BUCKET_NAME: REQUIRED
+  _INGRESS: internal-and-cloud-load-balancing
+  _SERVICE_MEMORY: 512Mi
+  _SERVICE_CPU: "1"
+  _SERVICE_CONCURRENCY: "80"
+  _SERVICE_TIMEOUT: "300"
+  _SERVICE_MIN_INSTANCES: "0"
+  _SERVICE_MAX_INSTANCES: "10"
+  _JOB_MEMORY: 512Mi
+  _JOB_CPU: "1"
+  _JOB_TIMEOUT: 900s
+  _JOB_MAX_RETRIES: "1"
+
+steps:
+  - id: validate-config
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        if [[ ! -f "${_ENV_TEMPLATE_FILE}" ]]; then
+          echo "Missing env vars template file: ${_ENV_TEMPLATE_FILE}" >&2
+          exit 1
+        fi
+
+        for required_value in \
+          "${_CLOUD_SQL_CONNECTION_NAME}" \
+          "${_GCS_STATIC_BUCKET_NAME}" \
+          "${_GCS_MEDIA_BUCKET_NAME}"; do
+          if [[ "${required_value}" == "REQUIRED" || -z "${required_value}" ]]; then
+            echo "Set required trigger substitutions: _CLOUD_SQL_CONNECTION_NAME, _GCS_STATIC_BUCKET_NAME, _GCS_MEDIA_BUCKET_NAME." >&2
+            exit 1
+          fi
+        done
+
+  - id: render-env-file
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        export GOOGLE_CLOUD_PROJECT="${PROJECT_ID}"
+        export CLOUD_SQL_CONNECTION_NAME="${_CLOUD_SQL_CONNECTION_NAME}"
+        export GCS_STATIC_BUCKET_NAME="${_GCS_STATIC_BUCKET_NAME}"
+        export GCS_MEDIA_BUCKET_NAME="${_GCS_MEDIA_BUCKET_NAME}"
+
+        bash scripts/cloudrun/render-env-file.sh "${_ENV_TEMPLATE_FILE}" "${_ENV_VARS_FILE}"
+
+  - id: build-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file
+      - docker/web/Dockerfile
+      - --tag
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE_NAME}:${COMMIT_SHA}
+      - .
+
+  - id: push-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE_NAME}:${COMMIT_SHA}
+
+  - id: deploy-service-no-traffic
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        image_uri="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE_NAME}:${COMMIT_SHA}"
+        runtime_service_account="${_SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
+
+        gcloud run deploy "${_SERVICE_NAME}" \
+          --project "${PROJECT_ID}" \
+          --region "${_REGION}" \
+          --platform managed \
+          --image "${image_uri}" \
+          --service-account "${runtime_service_account}" \
+          --port 8080 \
+          --memory "${_SERVICE_MEMORY}" \
+          --cpu "${_SERVICE_CPU}" \
+          --concurrency "${_SERVICE_CONCURRENCY}" \
+          --timeout "${_SERVICE_TIMEOUT}" \
+          --min-instances "${_SERVICE_MIN_INSTANCES}" \
+          --max-instances "${_SERVICE_MAX_INSTANCES}" \
+          --ingress "${_INGRESS}" \
+          --allow-unauthenticated \
+          --startup-probe "httpGet.path=/ready/,httpGet.port=8080,timeoutSeconds=5,periodSeconds=10,failureThreshold=12" \
+          --env-vars-file "${_ENV_VARS_FILE}" \
+          --set-secrets "${_SECRETS_SPEC}" \
+          --set-cloudsql-instances "${_CLOUD_SQL_CONNECTION_NAME}" \
+          --no-traffic
+
+  - id: deploy-release-jobs
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        image_uri="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE_NAME}:${COMMIT_SHA}"
+        runtime_service_account="${_SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
+
+        deploy_job() {
+          local job_name="$1"
+          local args_csv="$2"
+
+          gcloud run jobs deploy "${job_name}" \
+            --project "${PROJECT_ID}" \
+            --region "${_REGION}" \
+            --image "${image_uri}" \
+            --service-account "${runtime_service_account}" \
+            --memory "${_JOB_MEMORY}" \
+            --cpu "${_JOB_CPU}" \
+            --task-timeout "${_JOB_TIMEOUT}" \
+            --max-retries "${_JOB_MAX_RETRIES}" \
+            --command python \
+            --args "${args_csv}" \
+            --env-vars-file "${_ENV_VARS_FILE}" \
+            --set-secrets "${_SECRETS_SPEC}" \
+            --set-cloudsql-instances "${_CLOUD_SQL_CONNECTION_NAME}"
+        }
+
+        deploy_job "${_JOB_NAME_PREFIX}-check" "manage.py,check,--deploy"
+        deploy_job "${_JOB_NAME_PREFIX}-migrate" "manage.py,migrate,--noinput"
+        deploy_job "${_JOB_NAME_PREFIX}-collectstatic" "manage.py,collectstatic,--noinput"
+        deploy_job "${_JOB_NAME_PREFIX}-superuser" "manage.py,ensure_superuser,--skip-if-missing"
+
+  - id: execute-release-jobs
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        run_job() {
+          local job_name="$1"
+
+          gcloud run jobs execute "${job_name}" \
+            --project "${PROJECT_ID}" \
+            --region "${_REGION}" \
+            --wait
+        }
+
+        run_job "${_JOB_NAME_PREFIX}-check"
+        run_job "${_JOB_NAME_PREFIX}-migrate"
+        run_job "${_JOB_NAME_PREFIX}-collectstatic"
+        run_job "${_JOB_NAME_PREFIX}-superuser"
+
+  - id: route-traffic-to-latest
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - services
+      - update-traffic
+      - ${_SERVICE_NAME}
+      - --project
+      - ${PROJECT_ID}
+      - --region
+      - ${_REGION}
+      - --to-latest
+
+images:
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE_NAME}:${COMMIT_SHA}

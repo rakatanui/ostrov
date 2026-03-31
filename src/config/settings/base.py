@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import gettext_lazy as _
 
@@ -37,6 +38,52 @@ def env_int(name: str, default: int) -> int:
 def env_list(name: str, default: str = "") -> list[str]:
     raw_value = os.getenv(name, default)
     return [item.strip() for item in raw_value.split(",") if item.strip()]
+
+
+def env_optional(name: str, default: str = "") -> str:
+    return os.getenv(name, default).strip()
+
+
+def build_database_config() -> dict:
+    connection_max_age = env_int("POSTGRES_CONN_MAX_AGE", default=60)
+    connection_health_checks = env_bool("POSTGRES_CONN_HEALTH_CHECKS", default=True)
+    database_url = env_optional("DATABASE_URL")
+
+    if database_url:
+        config = dj_database_url.parse(
+            database_url,
+            conn_max_age=connection_max_age,
+            ssl_require=env_bool("POSTGRES_SSL_REQUIRE", default=False),
+        )
+        config["CONN_HEALTH_CHECKS"] = connection_health_checks
+        return config
+
+    host = env_optional("POSTGRES_HOST")
+    cloud_sql_connection_name = env_optional("CLOUD_SQL_CONNECTION_NAME")
+    if not host and cloud_sql_connection_name:
+        host = f"/cloudsql/{cloud_sql_connection_name}"
+    if not host:
+        host = "db"
+
+    config = {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": env("POSTGRES_DB", default="legends_island"),
+        "USER": env("POSTGRES_USER", default="legends"),
+        "PASSWORD": env("POSTGRES_PASSWORD", default="legends"),
+        "HOST": host,
+        "CONN_MAX_AGE": connection_max_age,
+        "CONN_HEALTH_CHECKS": connection_health_checks,
+    }
+
+    port = env_optional("POSTGRES_PORT")
+    if port:
+        config["PORT"] = port
+
+    ssl_mode = env_optional("POSTGRES_SSL_MODE")
+    if ssl_mode:
+        config["OPTIONS"] = {"sslmode": ssl_mode}
+
+    return config
 
 
 SECRET_KEY = env("DJANGO_SECRET_KEY", required=True)
@@ -91,17 +138,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": env("POSTGRES_DB", default="legends_island"),
-        "USER": env("POSTGRES_USER", default="legends"),
-        "PASSWORD": env("POSTGRES_PASSWORD", default="legends"),
-        "HOST": env("POSTGRES_HOST", default="db"),
-        "PORT": env("POSTGRES_PORT", default="5432"),
-        "CONN_MAX_AGE": env_int("POSTGRES_CONN_MAX_AGE", default=60),
-    }
-}
+DATABASES = {"default": build_database_config()}
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -123,12 +160,48 @@ USE_I18N = True
 TIME_ZONE = env("DJANGO_TIME_ZONE", default="UTC")
 USE_TZ = True
 
-STATIC_URL = "/static/"
+STATIC_URL = env("DJANGO_STATIC_URL", default="/static/")
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [SRC_DIR / "static"]
 
-MEDIA_URL = "/media/"
+MEDIA_URL = env("DJANGO_MEDIA_URL", default="/media/")
 MEDIA_ROOT = BASE_DIR / "media"
 
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 
+LOG_LEVEL = env("DJANGO_LOG_LEVEL", default="INFO")
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+        }
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+        }
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": LOG_LEVEL,
+    },
+    "loggers": {
+        "django.server": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        }
+    },
+}
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

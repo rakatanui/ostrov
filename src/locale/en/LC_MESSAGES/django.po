@@ -84,12 +84,8 @@ msgid "Легенды Острова"
 msgstr "Legends of the Island"
 
 #: templates/base.html:43
-msgid ""
-"Черновой проект сайта для публикации литературных легенд с редакторской "
-"модерацией."
-msgstr ""
-"An early-stage publishing site for literary legends with editorial "
-"moderation."
+msgid "Литературные легенды, мифы и предания острова."
+msgstr "Literary legends, myths, and lore of the island."
 
 #: templates/base.html:52
 msgid "Архив островных историй, мифов и преданий."
@@ -102,14 +98,6 @@ msgstr "Main navigation"
 #: templates/base.html:56
 msgid "Главная"
 msgstr "Home"
-
-#: templates/base.html:57
-msgid "Админка"
-msgstr "Admin"
-
-#: templates/base.html:58
-msgid "Проверить здоровье сервиса"
-msgstr "Health endpoint"
 
 #: templates/base.html:63
 msgid "Тема"
@@ -136,25 +124,16 @@ msgid "Легенды, которые держат память острова."
 msgstr "Legends that carry the island's memory."
 
 #: templates/core/home.html:11
-msgid ""
-"На этом этапе готов фундамент проекта: публичная главная страница, "
-"локализация, модели легенд и комментариев, а также встроенная админка для "
-"редакторов."
-msgstr ""
-"At this stage the project foundation is ready: a public homepage, "
-"localization, legend and comment models, and a built-in admin for editors."
+msgid "Собрание литературных легенд, мифов и преданий, сохраняющих память острова."
+msgstr "A collection of literary legends, myths, and lore that preserve the island's memory."
 
 #: templates/core/home.html:17
 msgid "Опубликованные легенды"
 msgstr "Published legends"
 
 #: templates/core/home.html:28
-msgid ""
-"Пока опубликованных легенд нет. Добавь записи через админку, и они появятся "
-"здесь автоматически."
-msgstr ""
-"There are no published legends yet. Add records through the admin and they "
-"will appear here automatically."
+msgid "Сейчас в архиве ещё нет опубликованных легенд."
+msgstr "There are no published legends in the archive yet."
 
 #: templates/legends/_legend_card.html:5
 msgid "Опубликованные переводы"
